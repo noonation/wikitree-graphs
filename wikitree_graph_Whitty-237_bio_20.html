@@ -339,6 +339,8 @@ function buildGraph(){
     if(isRoot){
       grp.append('circle').attr('class','root-ring').attr('r',ROOT_R+5).attr('fill','none')
         .attr('stroke','#ff2200').attr('stroke-width',1.8).attr('stroke-opacity',0.6);
+      grp.append('circle').attr('class','root-border').attr('r',ROOT_R+2).attr('fill','none')
+        .attr('stroke','#ffffff').attr('stroke-width',3).attr('stroke-opacity',1);
     }
     grp.append('circle').attr('class','node-bg').attr('r',r)
       .attr('fill',(hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg))
