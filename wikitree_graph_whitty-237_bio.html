@@ -141,8 +141,8 @@ a{color:var(--edge-pc)}
     </div>
     <div class="ctrl-section">
       <h3>Degrees of separation</h3>
-      <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">4</span></div>
-      <input type="range" id="deg-slider" min="0" max="3" value="4" step="1">
+      <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">5</span></div>
+      <input type="range" id="deg-slider" min="0" max="3" value="5" step="1">
       <div style="font-size:10px;color:var(--text3);margin-top:4px">Max in dataset: 3</div>
     </div>
     <div class="ctrl-section">
@@ -201,7 +201,7 @@ const EDGE_COLORS = {'parent-child':'#00b4f0','sibling':'#e0259a','spouse':'#f5c
 const ROOT_R = 30;
 
 var RAW = null, idMap = {};
-var showDeg = 4, showPC = true, showSib = true, showSp = true;
+var showDeg = 5, showPC = true, showSib = true, showSp = true;
 var linkDist = 30, repelStr = 80;
 var bioFilter = '', bioMatchIds = null;
 var mgrFilter = null;
