@@ -311,6 +311,26 @@ function draw(){
   });
 
   document.getElementById('vis-ct').textContent=vis.toLocaleString();
+
+  // DEBUG: draw a few test circles to confirm canvas is working
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#ff0000';
+  ctx.beginPath(); ctx.arc(50,50,10,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#00ff00';
+  ctx.beginPath(); ctx.arc(100,50,10,0,Math.PI*2); ctx.fill();
+  // Show first star's computed position
+  var fs=stars[1]; // deg-1 star
+  if(fs&&fs._x!==undefined){
+    var fpx=fs._x*sc+tx, fpy=fs._y*sc+ty;
+    ctx.fillStyle='#ffffff';
+    ctx.beginPath(); ctx.arc(fpx,fpy,8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffff00'; ctx.font='11px monospace';
+    ctx.fillText('star1: '+Math.round(fpx)+','+Math.round(fpy)+' sc='+sc.toFixed(3), 10, H-30);
+    ctx.fillText('tx='+Math.round(tx)+' ty='+Math.round(ty)+' W='+W+' H='+H, 10, H-15);
+  } else {
+    ctx.fillStyle='#ff0000'; ctx.font='11px monospace';
+    ctx.fillText('NO _x on stars[1]: '+JSON.stringify(Object.keys(fs||{})), 10, H-30);
+  }
 }
 
 // Hover
