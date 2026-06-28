@@ -223,8 +223,14 @@ function computeLayout(){
     });
   }
 
-  // Reset view to fit
-  tx=0; ty=0; scale=1;
+  // Auto-fit: find bounding box of all placed stars and scale to fill canvas
+  var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  positions.forEach(function(p){ if(!p) return; if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y; });
+  var pw=maxX-minX||1, ph=maxY-minY||1;
+  var pad=60;
+  scale=Math.min((W-pad*2)/pw,(H-pad*2)/ph,1);
+  tx=W/2-((minX+maxX)/2)*scale;
+  ty=H/2-((minY+maxY)/2)*scale;
 }
 
 function starColor(s){
@@ -436,7 +442,7 @@ document.getElementById('deg-range').oninput=function(){
 });
 
 document.getElementById('btn-reset').onclick=function(){
-  tx=0; ty=0; scale=1; draw();
+  computeLayout(); draw();
 };
 
 // Legend
