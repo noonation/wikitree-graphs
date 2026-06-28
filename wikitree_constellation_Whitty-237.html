@@ -193,8 +193,14 @@ var canvas=document.getElementById('sky');
 var ctx=canvas.getContext('2d');
 
 function resize(){
-  W=canvas.width=canvas.parentElement.clientWidth;
-  H=canvas.height=canvas.parentElement.clientHeight;
+  var parent=canvas.parentElement;
+  var cw=parent.clientWidth||window.innerWidth;
+  var ch=parent.clientHeight||(window.innerHeight-50);
+  W=canvas.width=cw;
+  H=canvas.height=ch;
+  // Force canvas style dimensions too
+  canvas.style.width=cw+'px';
+  canvas.style.height=ch+'px';
   computePositions();
   draw();
 }
@@ -218,6 +224,13 @@ canvas.addEventListener('wheel',function(e){
 
 function draw(){
   ctx.clearRect(0,0,W,H);
+  // EARLY DEBUG: red rect in corner, visible before anything else
+  ctx.fillStyle='red'; ctx.globalAlpha=1;
+  ctx.fillRect(0,0,40,40);
+  ctx.fillStyle='lime';
+  ctx.fillRect(40,0,40,40);
+  ctx.fillStyle='yellow'; ctx.font='12px monospace';
+  ctx.fillText('W='+W+' H='+H, 5, 70);
 
   // Sky
   var bg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.75);
