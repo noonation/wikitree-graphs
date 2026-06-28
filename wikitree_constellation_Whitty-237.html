@@ -239,9 +239,9 @@ function starColor(s){
 }
 
 function starSize(s){
-  if(s.deg===0) return 7;
-  var base = Math.max(0.8, Math.log(s.conns+1)*0.9);
-  return base;
+  if(s.deg===0) return 10;
+  // Fixed screen size regardless of zoom — min 2px, scales with connections
+  return Math.max(2, Math.min(6, 2 + Math.log(s.conns+1)*0.8));
 }
 
 function starAlpha(s){
@@ -252,7 +252,8 @@ function starAlpha(s){
     if(hstar && Math.abs(hstar.deg-s.deg)>1) return 0.08;
     return 0.15;
   }
-  var base = Math.min(1, 0.3+s.conns*0.04);
+  // Ensure all stars are visible — min 0.6, brighter for more connections
+  var base = Math.min(1, 0.6+s.conns*0.03);
   return base;
 }
 
@@ -322,14 +323,14 @@ function draw(){
     var px=p.x*scale+tx, py=p.y*scale+ty;
     if(px<-20||px>W+20||py<-20||py>H+20) return;
 
-    var r=starSize(s)*Math.max(0.5,scale*0.8);
+    var r=starSize(s);  // fixed screen size, independent of zoom
     var color=starColor(s);
     var isRoot=s.deg===0;
     var isHighlighted=s.id===highlighted;
 
     // Glow
     if(a>0.3||isRoot||isHighlighted){
-      var glowR=r*(isHighlighted?6:isRoot?5:3);
+      var glowR=r*(isHighlighted?5:isRoot?4:2.5);
       var grd=ctx.createRadialGradient(px,py,0,px,py,glowR);
       grd.addColorStop(0,color+(isHighlighted?'88':'44'));
       grd.addColorStop(1,'transparent');
@@ -349,12 +350,12 @@ function draw(){
       // Label
       ctx.fillStyle='#e8d5b0'; ctx.globalAlpha=0.9;
       ctx.font='bold 10px Inter,sans-serif'; ctx.textAlign='center';
-      ctx.fillText(s.name, px, py+r+16*Math.max(1,scale));
+      ctx.fillText(s.name, px, py+r+14);
     }
 
     // Bright star: draw 4-point sparkle
-    if(s.conns>8&&a>0.4){
-      var sp=r*2.5;
+    if(s.conns>6&&a>0.35){
+      var sp=r*2.2;
       ctx.strokeStyle=color; ctx.lineWidth=0.5; ctx.globalAlpha=a*0.5;
       ctx.beginPath(); ctx.moveTo(px-sp,py); ctx.lineTo(px+sp,py); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(px,py-sp); ctx.lineTo(px,py+sp); ctx.stroke();
