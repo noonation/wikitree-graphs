@@ -136,13 +136,13 @@ function makeIcon(d, size){
 }
 
 function makePopup(d){
-  var photo = d.photo ? '<img src="'+d.photo+'" class="pop-photo" onerror="this.style.display='none'">' : '';
+  var photo = d.photo ? '<img src="'+d.photo+'" class="pop-photo" onerror="this.remove()">' : '';
   var years = (d.by||'?') + (d.dy ? '–'+d.dy : '–');
   return '<div class="pop-name">'+photo+d.name+'</div>'+
     '<div class="pop-row">'+years+'</div>'+
     '<div class="pop-row" style="color:var(--text3)">'+d.bloc+'</div>'+
     '<div class="pop-row" style="margin-top:4px">'+
-      'Degree '+d.deg+' &middot; '+
+      'Degree '+d.deg+' · '+
       '<a class="pop-link" href="https://www.wikitree.com/wiki/'+d.wid+'" target="_blank">'+d.wid+'</a>'+
     '</div>';
 }
