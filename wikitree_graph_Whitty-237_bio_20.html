@@ -577,6 +577,9 @@ function showDetail(d){
     else mgrVal='<a href="https://www.wikitree.com/wiki/Special:SearchPerson?p='+d.manager+'" target="_blank">User '+d.manager+'</a>';
   }
   var rows=[
+    ['First name',d.first||'—'],
+    ['Middle name',d.mid||'—'],
+    ['Surname',d.last||'—'],
     ['Gender',d.gender||'—'],
     ['Born',(d.by||'?')+(d.bloc?', '+d.bloc:'')],
     ['Died',d.dy?(d.dy+(d.dloc?', '+d.dloc:'')) : '—'],
