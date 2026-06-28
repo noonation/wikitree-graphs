@@ -17,8 +17,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;heigh
 .stats-row{display:flex;gap:16px;font-size:11px;color:var(--text2)}
 .stat{display:flex;flex-direction:column;align-items:flex-end}
 .stat strong{font-size:15px;font-weight:500;color:var(--text)}
-#main{display:flex;flex:1;overflow:hidden}
-#map{flex:1;z-index:1}
+#main{display:flex;flex:1;overflow:hidden;min-height:0}
+#map{flex:1;z-index:1;min-height:0}
 #controls{width:230px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;padding:14px;gap:14px;overflow-y:auto;flex-shrink:0;z-index:1000}
 .ctrl-section h3{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
 .ctrl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
@@ -106,7 +106,13 @@ const DEG_COLORS = ['#ff2200','#ff6600','#ff9900','#ffcc00','#ffee00','#ccee00',
 // Dark tile layer
 var map = L.map('map', {
   center: [-30, 135], zoom: 5,
-  zoomControl: true, attributionControl: true
+  zoomControl: true, attributionControl: true,
+  scrollWheelZoom: true,
+  touchZoom: true,
+  doubleClickZoom: true,
+  boxZoom: true,
+  keyboard: true,
+  dragging: true,
 });
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -223,6 +229,8 @@ document.addEventListener('click',function(e){if(!e.target.closest('.search-wrap
 })();
 
 rebuildMarkers();
+// Force Leaflet to recalculate map size after flex layout settles
+setTimeout(function(){ map.invalidateSize(); }, 100);
 </script>
 </body>
 </html>
