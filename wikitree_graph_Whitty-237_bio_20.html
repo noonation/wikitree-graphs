@@ -66,6 +66,12 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 #mgr-count .match-num{color:var(--edge-sp);font-weight:600}
 #clear-mgr{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
 #clear-mgr:hover{color:var(--text)}
+#surname-select{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;font-family:'Inter',sans-serif;outline:none;cursor:pointer}
+#surname-select:focus{border-color:#c8a2ff}
+#surname-count{font-size:11px;color:var(--text2);margin-top:5px;min-height:16px}
+#surname-count .match-num{color:#c8a2ff;font-weight:600}
+#clear-surname{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
+#clear-surname:hover{color:var(--text)}
 #sim-status{font-size:11px;color:var(--text3);text-align:center;min-height:16px}
 #detail{position:absolute;bottom:16px;left:16px;width:280px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px;z-index:20;display:none;max-height:70vh;overflow-y:auto}
 #detail .d-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--text);margin-bottom:2px;padding-right:20px}
@@ -140,6 +146,12 @@ a{color:var(--edge-pc)}
       <button id="clear-mgr">Clear manager filter</button>
     </div>
     <div class="ctrl-section">
+      <h3>Filter by surname</h3>
+      <select id="surname-select"><option value="">All surnames</option></select>
+      <div id="surname-count"></div>
+      <button id="clear-surname">Clear surname filter</button>
+    </div>
+    <div class="ctrl-section">
       <h3>Degrees of separation</h3>
       <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">5</span></div>
       <input type="range" id="deg-slider" min="0" max="11" value="5" step="1">
@@ -205,6 +217,7 @@ var showDeg = 5, showPC = true, showSib = true, showSp = true;
 var linkDist = 30, repelStr = 80;
 var bioFilter = '', bioMatchIds = null;
 var mgrFilter = null;
+var surnameFilter = null;
 var simPaused = false;
 var transform = d3.zoomIdentity;
 var currentSim = null;
@@ -249,6 +262,7 @@ function nodeRadius(n){
 function degColor(deg){ return DEG_COLORS[Math.min(deg, DEG_COLORS.length-1)]; }
 
 function nodeOpacity(d){
+  if(surnameFilter && d.last !== surnameFilter) return 0.08;
   if(mgrFilter && d.manager !== mgrFilter) return 0.28;
   var vbm=window._visibleBioMatchIds, hasVis=vbm&&vbm.size>0;
   if(!hasVis) return 1;
@@ -269,8 +283,9 @@ function drawEdges(){
     var src=typeof e.source==='object'?e.source:nodes[e.source];
     var tgt=typeof e.target==='object'?e.target:nodes[e.target];
     if(!src||!tgt||src.x==null||tgt.x==null) continue;
+    var surnameDim=surnameFilter&&src.last!==surnameFilter&&tgt.last!==surnameFilter;
     var mgrDim=mgrFilter&&src.manager!==mgrFilter&&tgt.manager!==mgrFilter;
-    var dim=mgrDim||(dimIds&&!dimIds.has(src.id)&&!dimIds.has(tgt.id));
+    var dim=surnameDim||mgrDim||(dimIds&&!dimIds.has(src.id)&&!dimIds.has(tgt.id));
     var vbm2=window._visibleBioMatchIds, hasVis2=vbm2&&vbm2.size>0;
     var bioEdge=hasVis2&&(vbm2.has(src.id)||vbm2.has(tgt.id));
     ctx.beginPath(); ctx.moveTo(src.x,src.y); ctx.lineTo(tgt.x,tgt.y);
@@ -343,7 +358,7 @@ function buildGraph(){
         .attr('stroke','#ffffff').attr('stroke-width',3).attr('stroke-opacity',1);
     }
     grp.append('circle').attr('class','node-bg').attr('r',r)
-      .attr('fill',(hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg))
+      .attr('fill',function(){ if(surnameFilter&&d.last===surnameFilter) return '#c8a2ff'; return (hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg); }())
       .attr('stroke',isRoot?'#fff':'rgba(255,255,255,0.12)')
       .attr('stroke-width',isRoot?2.5:0.8)
       .attr('fill-opacity',nodeOpacity(d))
@@ -725,6 +740,19 @@ document.getElementById('reset-btn').onclick=function(){
   else { svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity.translate(w/2,h/2).scale(1)); }
 };
 document.addEventListener('click',function(e){if(!e.target.closest('#name-search-wrap'))nameRes.style.display='none';});
+document.getElementById('surname-select').onchange=function(){
+  surnameFilter=this.value||null;
+  var cb=document.getElementById('clear-surname'), ce=document.getElementById('surname-count');
+  if(surnameFilter){
+    var cnt=RAW.nodes.filter(function(n){return n.last===surnameFilter;}).length;
+    ce.innerHTML='<span class="match-num">'+cnt+'</span> people'; cb.style.display='block';
+  } else { ce.innerHTML=''; cb.style.display='none'; }
+  buildGraph();
+};
+document.getElementById('clear-surname').onclick=function(){
+  surnameFilter=null; document.getElementById('surname-select').value='';
+  document.getElementById('surname-count').innerHTML=''; this.style.display='none'; buildGraph();
+};
 window.addEventListener('resize',function(){
   w=wrap.clientWidth;h=wrap.clientHeight;
   canvas.width=w;canvas.height=h;svg.attr('width',w).attr('height',h);
@@ -753,6 +781,15 @@ window.addEventListener('resize',function(){
   var mgrList=Object.keys(mgrCounts).map(function(id){return {id:+id,count:mgrCounts[id],label:mgrNames[id]||'User '+id};}).sort(function(a,b){return b.count-a.count;});
   var sel=document.getElementById('mgr-select');
   mgrList.forEach(function(m){var opt=document.createElement('option');opt.value=m.id;opt.textContent=m.label+' ('+m.count+')';sel.appendChild(opt);});
+  // Top 30 surnames by frequency
+  var snCounts={};
+  RAW.nodes.forEach(function(n){ if(n.last) snCounts[n.last]=(snCounts[n.last]||0)+1; });
+  var top30=Object.entries(snCounts).sort(function(a,b){return b[1]-a[1];}).slice(0,30);
+  var snSel=document.getElementById('surname-select');
+  top30.forEach(function(pair){
+    var opt=document.createElement('option');
+    opt.value=pair[0]; opt.textContent=pair[0]+' ('+pair[1]+')'; snSel.appendChild(opt);
+  });
   buildGraph();
 })();
 </script>
