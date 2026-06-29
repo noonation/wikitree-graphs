@@ -684,10 +684,22 @@ function showDetail(d){
   } else {
     pathSec.innerHTML='<div style="font-size:11px;color:var(--text3)">No path found at current degree</div>';
   }
+  // Build set of nodes adjacent to path for softer dimming
+  var adjToPath=new Set();
+  if(window._pathIds){
+    (window._simEdges||[]).forEach(function(e){
+      var sid=typeof e.source==='object'?e.source.id:(window._simNodes&&window._simNodes[e.source]&&window._simNodes[e.source].id);
+      var tid=typeof e.target==='object'?e.target.id:(window._simNodes&&window._simNodes[e.target]&&window._simNodes[e.target].id);
+      if(window._pathIds.has(sid)) adjToPath.add(tid);
+      if(window._pathIds.has(tid)) adjToPath.add(sid);
+    });
+  }
   svg.selectAll('g.ng').each(function(nd){
     if(!nd) return;
     var onPath=window._pathIds&&window._pathIds.has(nd.id);
-    d3.select(this).selectAll('circle,image,text').attr('opacity',onPath?null:0.12);
+    var nearPath=adjToPath.has(nd.id);
+    var op=onPath?null:nearPath?0.35:0.12;
+    d3.select(this).selectAll('circle,image,text').attr('opacity',op);
   });
   drawEdges();
   if(!is3D){
