@@ -113,6 +113,13 @@ a{color:#00b4f0}
       <button class="ctrl-btn" id="s-lifespan-asc">Lifespan (shortest first)</button>
     </div>
     <div class="ctrl-section">
+      <h3>Group by country</h3>
+      <select id="group-select" style="width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
+        <option value="">No grouping — sorted by birth year</option>
+        <option value="group">Group by country, then birth year</option>
+      </select>
+    </div>
+    <div class="ctrl-section">
       <h3>Bar height</h3>
       <div class="ctrl-row"><span class="ctrl-label">Row height</span><span class="ctrl-value" id="rh-val">3</span>px</div>
       <input type="range" id="rh-sl" min="1" max="12" value="3" step="1">
@@ -184,6 +191,7 @@ function getCountry(bloc){
 DATA.forEach(function(d){ d.country = getCountry(d.bloc); });
 
 var sortMode = 'birth';
+var groupByCountry = false;
 var rowH = 3, yrFrom = 1615, yrTo = 1973, showDeg = 11;
 var highlighted = null;
 
@@ -209,13 +217,33 @@ function filtered(){
   });
 }
 
+var COUNTRY_ORDER = ['Australia','England','Ireland','Scotland','United Kingdom','India','New Zealand','United States','Germany','France','Other'];
+
 function sorted(arr){
   var a = arr.slice();
-  if(sortMode==='birth')    a.sort(function(x,y){ return x.by-y.by; });
-  if(sortMode==='death')    a.sort(function(x,y){ return x.dy-y.dy; });
-  if(sortMode==='lifespan') a.sort(function(x,y){ return y.lifespan-x.lifespan; });
-  if(sortMode==='lifespan-asc') a.sort(function(x,y){ return x.lifespan-y.lifespan; });
-  return a;
+  // Primary sort
+  if(sortMode==='birth')        a.sort(function(x,y){ return x.by-y.by; });
+  else if(sortMode==='death')   a.sort(function(x,y){ return x.dy-y.dy; });
+  else if(sortMode==='lifespan')a.sort(function(x,y){ return y.lifespan-x.lifespan; });
+  else                          a.sort(function(x,y){ return x.lifespan-y.lifespan; });
+
+  if(!groupByCountry) return a;
+
+  // Group by country, preserving birth-year order within each group
+  // First sort by birth year within all
+  a.sort(function(x,y){ return x.by-y.by; });
+  var groups = {};
+  COUNTRY_ORDER.forEach(function(c){ groups[c]=[]; });
+  a.forEach(function(d){
+    var c = d.country;
+    if(!groups[c]) groups[c]=[];
+    groups[c].push(d);
+  });
+  var result = [];
+  COUNTRY_ORDER.forEach(function(c){
+    if(groups[c]&&groups[c].length) result = result.concat(groups[c]);
+  });
+  return result;
 }
 
 function yearToX(yr){ return LABEL_W + (yr-MIN_YEAR)/(MAX_YEAR-MIN_YEAR)*(barW-LABEL_W); }
@@ -277,6 +305,33 @@ function draw(){
     ctx.beginPath(); ctx.moveTo(x2, 0); ctx.lineTo(x2, totalH); ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
+  }
+
+  // Country group labels and dividers
+  if(groupByCountry){
+    var currentCountry = null, groupStartI = 0;
+    vis.forEach(function(d,i){
+      if(d.country !== currentCountry){
+        if(currentCountry !== null){
+          // Divider line between groups
+          ctx.fillStyle='rgba(255,255,255,0.08)';
+          ctx.fillRect(0, i*rowH-1, W, 1);
+        }
+        currentCountry = d.country;
+        groupStartI = i;
+        // Country label (only when rows are tall enough, or always as tiny text)
+        if(rowH >= 2){
+          var labelY = i*rowH + rowH*0.5;
+          var color = COUNTRY_COLORS[d.country]||COUNTRY_COLORS['Other'];
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.7;
+          ctx.font = Math.max(8, Math.min(11, rowH*2))+'px Inter,sans-serif';
+          ctx.textAlign='left';
+          ctx.fillText(d.country, LABEL_W+4, labelY+4);
+          ctx.globalAlpha=1;
+        }
+      }
+    });
   }
 
   // Draw bars
@@ -494,6 +549,11 @@ document.getElementById('clear-epidemic').onclick=function(){
   document.getElementById('epidemic-desc').textContent='';
   document.getElementById('epidemic-years').innerHTML='';
   this.style.display='none';
+  draw();
+};
+
+document.getElementById('group-select').onchange=function(){
+  groupByCountry = this.value==='group';
   draw();
 };
 
