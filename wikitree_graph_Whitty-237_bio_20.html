@@ -698,7 +698,8 @@ function showDetail(d){
     if(!nd) return;
     var onPath=window._pathIds&&window._pathIds.has(nd.id);
     var nearPath=adjToPath.has(nd.id);
-    var op=onPath?null:nearPath?0.35:0.12;
+    var closeRel=nd.deg<=2;  // always keep deg 1+2 visible
+    var op=onPath?null:closeRel?0.5:nearPath?0.3:0.1;
     d3.select(this).selectAll('circle,image,text').attr('opacity',op);
   });
   drawEdges();
