@@ -289,9 +289,11 @@ function drawEdges(){
     var vbm2=window._visibleBioMatchIds, hasVis2=vbm2&&vbm2.size>0;
     var bioEdge=hasVis2&&(vbm2.has(src.id)||vbm2.has(tgt.id));
     ctx.beginPath(); ctx.moveTo(src.x,src.y); ctx.lineTo(tgt.x,tgt.y);
-    ctx.strokeStyle=EDGE_COLORS[e.type]||'#555';
-    ctx.lineWidth=e.type==='parent-child'?1.8:e.type==='spouse'?2.2:1.1;
-    ctx.globalAlpha=dim?0.12:(hasVis2?(bioEdge?0.7:0.08):0.9);
+    var pIds=window._pathIds;
+    var onPath=pIds&&(pIds.has(src.id)&&pIds.has(tgt.id));
+    ctx.strokeStyle=onPath?'#ffffff':(EDGE_COLORS[e.type]||'#555');
+    ctx.lineWidth=onPath?2.5:(e.type==='parent-child'?1.8:e.type==='spouse'?2.2:1.1);
+    ctx.globalAlpha=onPath?0.95:dim?0.12:(hasVis2?(bioEdge?0.7:0.08):(pIds?0.06:0.9));
     ctx.stroke();
   }
   ctx.restore();
@@ -580,6 +582,38 @@ function zoomToMatches(){
     d3.zoomIdentity.translate(w/2-sc*(x0+x1)/2,h/2-sc*(y0+y1)/2).scale(sc));
 }
 
+
+function findPathToRoot(targetId){
+  var simNodes=window._simNodes||[], simEdges=window._simEdges||[];
+  var root=simNodes.find(function(n){return n.deg===0;});
+  if(!root) return [];
+  if(root.id===targetId) return [targetId];
+  var adj={};
+  simNodes.forEach(function(n){adj[n.id]=[];});
+  simEdges.forEach(function(e){
+    var sid=typeof e.source==='object'?e.source.id:(simNodes[e.source]&&simNodes[e.source].id);
+    var tid=typeof e.target==='object'?e.target.id:(simNodes[e.target]&&simNodes[e.target].id);
+    if(sid==null||tid==null) return;
+    if(!adj[sid])adj[sid]=[];
+    if(!adj[tid])adj[tid]=[];
+    adj[sid].push(tid); adj[tid].push(sid);
+  });
+  var prev={},visited={},queue=[targetId];
+  visited[targetId]=true;
+  while(queue.length){
+    var cur=queue.shift();
+    if(cur===root.id){
+      var path=[],node=root.id;
+      while(node!==undefined){path.unshift(node);node=prev[node];}
+      return path;
+    }
+    (adj[cur]||[]).forEach(function(nb){
+      if(!visited[nb]){visited[nb]=true;prev[nb]=cur;queue.push(nb);}
+    });
+  }
+  return [];
+}
+
 function showDetail(d){
   var pw=document.getElementById('d-photo-wrap'), pi=document.getElementById('d-photo');
   if(d.photo){ pi.src=d.photo; pw.style.display='block'; } else { pi.src=''; pw.style.display='none'; }
@@ -627,6 +661,35 @@ function showDetail(d){
     if(bioFilter){ setTimeout(function(){var m=bioTxt.querySelector('mark');if(m)m.scrollIntoView({block:'nearest'});},50); }
   } else { bioSec.style.display='none'; }
   document.getElementById('detail').style.display='block';
+  var path=findPathToRoot(d.id);
+  window._pathIds=path.length?new Set(path):null;
+  var pathSec=document.getElementById('d-path-section');
+  if(!pathSec){
+    pathSec=document.createElement('div');
+    pathSec.id='d-path-section';
+    pathSec.style.cssText='margin-top:10px;border-top:1px solid var(--border);padding-top:10px';
+    document.getElementById('detail').appendChild(pathSec);
+  }
+  if(path.length>1){
+    var nmap={}; (window._simNodes||[]).forEach(function(n){nmap[n.id]=n;});
+    var steps=path.map(function(id){return nmap[id];}).filter(Boolean);
+    pathSec.innerHTML='<div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Path to root ('+(path.length-1)+' step'+(path.length>2?'s':'')+')</div>'+
+      steps.map(function(n,i){
+        var arr=i<steps.length-1?' <span style="color:var(--text3)">&rarr;</span> ':'';
+        var st=n.deg===0?'color:#ff2200;font-weight:600':'color:var(--text2)';
+        return '<span style="font-size:11px;'+st+';cursor:pointer" onclick="centerNode('+n.id+')">'+n.name+'</span>'+arr;
+      }).join('');
+  } else if(path.length===1){
+    pathSec.innerHTML='<div style="font-size:11px;color:var(--text3)">This is the root node</div>';
+  } else {
+    pathSec.innerHTML='<div style="font-size:11px;color:var(--text3)">No path found at current degree</div>';
+  }
+  svg.selectAll('g.ng').each(function(nd){
+    if(!nd) return;
+    var onPath=window._pathIds&&window._pathIds.has(nd.id);
+    d3.select(this).selectAll('circle,image,text').attr('opacity',onPath?null:0.12);
+  });
+  drawEdges();
   if(!is3D){
     var connIds=new Set([d.id]);
     conEdges.forEach(function(e){
@@ -645,7 +708,9 @@ function showDetail(d){
 
 function closeDetail(){
   document.getElementById('detail').style.display='none';
+  var ps=document.getElementById('d-path-section');if(ps)ps.innerHTML='';
   window._dimIds=null;
+  window._pathIds=null;
   svg.selectAll('g.ng circle,g.ng image,g.ng text').attr('opacity',null);
   drawEdges();
 }
