@@ -160,21 +160,22 @@ function draw(){
   });
 
   // X axis
-  ctx.fillStyle='rgba(160,148,120,0.6)'; ctx.font='10px Inter,sans-serif'; ctx.textAlign='center';
+  // X axis tick labels
+  ctx.fillStyle='rgba(232,213,176,0.9)'; ctx.font='bold 12px Inter,sans-serif'; ctx.textAlign='center';
   for(var yr2=Math.ceil(yrFrom/50)*50; yr2<=yrTo; yr2+=50){
-    ctx.fillText(yr2, xScale(yr2), H-PAD.bottom+14);
+    ctx.fillText(yr2, xScale(yr2), H-PAD.bottom+16);
   }
-  // Y axis
-  ctx.textAlign='right';
+  // Y axis tick labels
+  ctx.fillStyle='rgba(232,213,176,0.9)'; ctx.font='bold 12px Inter,sans-serif'; ctx.textAlign='right';
   for(var ls2=0; ls2<=120; ls2+=20){
-    ctx.fillText(ls2+'y', PAD.left-6, yScale(ls2)+4);
+    ctx.fillText(ls2+'y', PAD.left-8, yScale(ls2)+4);
   }
-  // Axis labels
-  ctx.fillStyle='rgba(120,110,90,0.5)'; ctx.font='10px Inter,sans-serif';
+  // Axis title labels
+  ctx.fillStyle='rgba(232,213,176,0.7)'; ctx.font='13px Inter,sans-serif';
   ctx.textAlign='center';
-  ctx.fillText('Death year', PAD.left+(W-PAD.left-PAD.right)/2, H-4);
-  ctx.save(); ctx.translate(12, PAD.top+(H-PAD.top-PAD.bottom)/2);
-  ctx.rotate(-Math.PI/2); ctx.fillText('Lifespan (years)', 0, 0); ctx.restore();
+  ctx.fillText('Death year →', PAD.left+(W-PAD.left-PAD.right)/2, H-2);
+  ctx.save(); ctx.translate(13, PAD.top+(H-PAD.top-PAD.bottom)/2);
+  ctx.rotate(-Math.PI/2); ctx.fillText('↑ Lifespan (years)', 0, 0); ctx.restore();
 
   // Axis border lines
   ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1;
