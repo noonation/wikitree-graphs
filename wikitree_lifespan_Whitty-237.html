@@ -229,9 +229,8 @@ function sorted(arr){
 
   if(!groupByCountry) return a;
 
-  // Group by country, preserving birth-year order within each group
-  // First sort by birth year within all
-  a.sort(function(x,y){ return x.by-y.by; });
+  // Group by country, then by death year within each group
+  a.sort(function(x,y){ return x.dy-y.dy; });
   var groups = {};
   COUNTRY_ORDER.forEach(function(c){ groups[c]=[]; });
   a.forEach(function(d){
