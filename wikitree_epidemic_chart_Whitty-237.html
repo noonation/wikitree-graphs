@@ -39,6 +39,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 #tooltip .tn{font-family:'Playfair Display',serif;font-size:13px;color:var(--text);margin-bottom:3px}
 #tooltip .ty{color:var(--text2)}
 #tooltip .tl{color:var(--text3);font-size:10px}
+#ep-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;z-index:500;display:none;width:400px;max-width:90vw;box-shadow:0 8px 40px rgba(0,0,0,0.7)}
+#ep-popup-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;margin-bottom:4px;padding-right:24px}
+#ep-popup-years{font-size:12px;margin-bottom:16px}
+.epr{display:flex;gap:10px;margin-bottom:9px;font-size:12px}
+.epk{color:var(--text3);min-width:85px;flex-shrink:0;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;padding-top:1px}
+.epv{color:var(--text2);line-height:1.5}
+#ep-popup-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1}
+#ep-popup-close:hover{color:var(--text)}
+#ep-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:499;display:none}
 a{color:#00b4f0}
 </style>
 </head>
@@ -270,7 +279,8 @@ canvas.addEventListener('mouseleave',function(){ hoveredPoint=null; draw(); docu
     item.onclick=function(){
       activeEp=(activeEp&&activeEp.name===ep.name)?null:ep;
       document.querySelectorAll('.ep-item').forEach(function(i){i.classList.remove('active');});
-      if(activeEp) item.classList.add('active');
+      if(activeEp){ item.classList.add('active'); showEpPopup(ep); }
+      else closeEpPopup();
       draw();
     };
     div.appendChild(item);
@@ -282,8 +292,59 @@ document.getElementById('sz-sl').oninput=function(){ nodeSize=+this.value; docum
 document.getElementById('yf-sl').oninput=function(){ yrFrom=+this.value; document.getElementById('yf-val').textContent=this.value; draw(); };
 document.getElementById('yt-sl').oninput=function(){ yrTo=+this.value; document.getElementById('yt-val').textContent=this.value; draw(); };
 
+function showEpPopup(ep){
+  document.getElementById('ep-popup-title').textContent=ep.name;
+  document.getElementById('ep-popup-title').style.color=ep.color;
+  document.getElementById('ep-popup-years').innerHTML='<span style="color:'+ep.color+';font-size:13px;font-weight:600">'+ep.years[0]+'–'+ep.years[1]+'</span>';
+  document.getElementById('epp-dur').textContent=(ep.years[1]-ep.years[0]+1)+' years ('+ep.years[0]+'–'+ep.years[1]+')';
+  document.getElementById('epp-peak').textContent=ep.peak[0]===ep.peak[1]?ep.peak[0]:ep.peak[0]+'–'+ep.peak[1];
+  document.getElementById('epp-killed').textContent=ep.killed||ep.mortality||'—';
+  document.getElementById('epp-demo').textContent=ep.demo||'—';
+  document.getElementById('epp-regions').textContent=ep.regions.join(', ');
+  document.getElementById('ep-popup').style.display='block';
+  document.getElementById('ep-overlay').style.display='block';
+}
+function closeEpPopup(){
+  document.getElementById('ep-popup').style.display='none';
+  document.getElementById('ep-overlay').style.display='none';
+}
+document.getElementById('ep-popup-close').onclick=closeEpPopup;
+document.getElementById('ep-overlay').onclick=closeEpPopup;
+
+// Click on chart to select epidemic band or person dot
+canvas.addEventListener('click',function(e){
+  var rect=canvas.getBoundingClientRect();
+  var mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  // Check if click hits an epidemic peak band
+  var hitEp=null;
+  EPIDEMICS.forEach(function(ep){
+    var px1=xScale(ep.peak[0]), px2=Math.max(xScale(ep.peak[1]),xScale(ep.peak[0])+4);
+    if(mx>=px1-4&&mx<=px2+4&&my>=PAD.top&&my<=H-PAD.bottom) hitEp=ep;
+  });
+  if(hitEp){
+    activeEp=(activeEp&&activeEp.name===hitEp.name)?null:hitEp;
+    document.querySelectorAll('.ep-item').forEach(function(el,i){
+      el.classList.toggle('active',!!(activeEp&&EPIDEMICS[i]&&EPIDEMICS[i].name===activeEp.name));
+    });
+    if(activeEp) showEpPopup(hitEp);
+    else closeEpPopup();
+    draw(); return;
+  }
+});
+
 window.addEventListener('resize',resize);
 resize();
 </script>
+<div id="ep-overlay"></div>
+<div id="ep-popup">
+  <button id="ep-popup-close">&#x2715;</button>
+  <div id="ep-popup-title"></div>
+  <div id="ep-popup-years"></div>
+  <div class="epr"><span class="epk">Duration</span><span class="epv" id="epp-dur"></span></div>
+  <div class="epr"><span class="epk">Peak years</span><span class="epv" id="epp-peak"></span></div>
+  <div class="epr"><span class="epk">Death toll</span><span class="epv" id="epp-killed"></span></div>
+  <div class="epr"><span class="epk">Most affected</span><span class="epv" id="epp-demo"></span></div>
+  <div class="epr"><span class="epk">Regions</span><span class="epv" id="epp-regions"></span></div>
+</div>
 </body>
 </html>
