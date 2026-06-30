@@ -215,22 +215,60 @@ function draw(){
     return p.dy>=yrFrom&&p.dy<=yrTo&&countryOn[p.country]!==false;
   });
 
-  // Draw non-hovered first, hovered last
-  // Draw unfocused countries first (behind), focused on top
-  var drawOrder = focusedCountry
-    ? filtered.slice().sort(function(a,b){ return (a.country===focusedCountry?1:-1)-(b.country===focusedCountry?1:-1); })
-    : filtered;
+  // Determine epidemic window
+  var epY1 = activeEp ? activeEp.years[0] : null;
+  var epY2 = activeEp ? activeEp.years[1] : null;
+
+  // Sort: dim nodes drawn first, bright nodes on top
+  // Priority: inEpidemic+focusedCountry > inEpidemic > focusedCountry > everything else
+  function nodePriority(p){
+    var inEp  = epY1 && p.dy>=epY1 && p.dy<=epY2;
+    var inFoc = focusedCountry && p.country===focusedCountry;
+    if(inEp && inFoc) return 3;
+    if(inEp)          return 2;
+    if(inFoc)         return 1;
+    return 0;
+  }
+
+  var drawOrder = filtered.slice().sort(function(a,b){ return nodePriority(a)-nodePriority(b); });
+
   drawOrder.forEach(function(p){
     var x=xScale(p.dy), y=yScale(p.lifespan);
     if(x<PAD.left||x>W-PAD.right) return;
-    var color=COUNTRY_COLORS[p.country]||COUNTRY_COLORS['Other'];
-    var isFocused = focusedCountry && p.country===focusedCountry;
-    var isOther   = focusedCountry && p.country!==focusedCountry;
-    var r = isFocused ? nodeSize*1.3 : nodeSize;
+
+    var inEp  = epY1 && p.dy>=epY1 && p.dy<=epY2;
+    var inFoc = focusedCountry ? p.country===focusedCountry : null;
+    var pri   = nodePriority(p);
+
+    var color = COUNTRY_COLORS[p.country]||COUNTRY_COLORS['Other'];
+    var r, alpha;
+
+    if(!activeEp && !focusedCountry){
+      // No filters — default view
+      r=nodeSize; alpha=0.55;
+    } else if(activeEp && focusedCountry){
+      // Both filters active
+      if(pri===3){ r=nodeSize*1.6; alpha=1; }       // in epidemic + right country: brightest
+      else if(pri===2){ r=nodeSize*1.1; alpha=0.4; } // in epidemic, wrong country: moderate
+      else if(pri===1){ r=nodeSize; alpha=0.2; }     // right country, outside epidemic: dim
+      else { r=nodeSize*0.8; alpha=0.08; }           // neither: very dim
+    } else if(activeEp){
+      // Epidemic only
+      if(inEp){ r=nodeSize*1.4; alpha=0.95; }       // in epidemic: bright
+      else     { r=nodeSize*0.8; alpha=0.1; }        // outside: dim
+    } else {
+      // Country only
+      if(inFoc){ r=nodeSize*1.3; alpha=0.95; }
+      else      { r=nodeSize*0.8; alpha=0.12; }
+    }
+
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=color;
-    ctx.globalAlpha = isFocused ? 0.95 : isOther ? 0.12 : 0.55;
-    ctx.fill();
+    ctx.fillStyle=color; ctx.globalAlpha=alpha; ctx.fill();
+    // Bright ring on top-priority nodes
+    if(pri===3){
+      ctx.beginPath(); ctx.arc(x,y,r+1.5,0,Math.PI*2);
+      ctx.strokeStyle=color; ctx.lineWidth=0.8; ctx.globalAlpha=0.6; ctx.stroke();
+    }
     vis++;
   });
   ctx.globalAlpha=1;
