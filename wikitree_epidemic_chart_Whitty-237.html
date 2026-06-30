@@ -134,25 +134,27 @@ function draw(){
     if(x2<PAD.left||x1>W-PAD.right) return;
 
     // Full span
-    ctx.fillStyle=ep.color; ctx.globalAlpha=isActive?0.12:0.04;
+    ctx.fillStyle=ep.color; ctx.globalAlpha=isActive?0.22:0.10;
     ctx.fillRect(Math.max(x1,PAD.left),PAD.top,Math.min(x2,W-PAD.right)-Math.max(x1,PAD.left),H-PAD.top-PAD.bottom);
 
-    // Peak
-    ctx.globalAlpha=isActive?0.28:0.1;
-    ctx.fillRect(Math.max(px1,PAD.left),PAD.top,Math.max(1,Math.min(px2,W-PAD.right)-Math.max(px1,PAD.left)),H-PAD.top-PAD.bottom);
+    // Peak — always visible, brighter when active
+    ctx.globalAlpha=isActive?0.55:0.28;
+    ctx.fillRect(Math.max(px1,PAD.left),PAD.top,Math.max(2,Math.min(px2,W-PAD.right)-Math.max(px1,PAD.left)),H-PAD.top-PAD.bottom);
 
-    // Peak border lines
-    if(isActive){
-      ctx.strokeStyle=ep.color; ctx.lineWidth=1.5; ctx.globalAlpha=0.8;
-      ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(px1,PAD.top); ctx.lineTo(px1,H-PAD.bottom); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(px2,PAD.top); ctx.lineTo(px2,H-PAD.bottom); ctx.stroke();
-      // Label at top
-      ctx.fillStyle=ep.color; ctx.globalAlpha=0.9;
-      ctx.font='bold 9px Inter,sans-serif'; ctx.textAlign='center';
-      var mid=(px1+px2)/2;
-      ctx.fillText(ep.name, mid, PAD.top+10);
-    }
+    // Always draw peak border lines + label (dimmed when not active)
+    ctx.strokeStyle=ep.color; ctx.lineWidth=isActive?1.5:0.8; ctx.globalAlpha=isActive?0.9:0.4;
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(px1,PAD.top); ctx.lineTo(px1,H-PAD.bottom); ctx.stroke();
+    if(px2>px1+2){ ctx.beginPath(); ctx.moveTo(px2,PAD.top); ctx.lineTo(px2,H-PAD.bottom); ctx.stroke(); }
+    // Name label at top of peak bar
+    ctx.fillStyle=ep.color; ctx.globalAlpha=isActive?1:0.5;
+    ctx.font=(isActive?'bold ':'')+Math.min(9,Math.max(7,(px2-px1)*0.18))+'px Inter,sans-serif';
+    ctx.textAlign='center';
+    var mid=(Math.max(px1,PAD.left)+Math.min(px2,W-PAD.right))/2;
+    var barW2=Math.min(px2,W-PAD.right)-Math.max(px1,PAD.left);
+    var shortLabel=ep.name.length*5.5>barW2?ep.name.split(' —')[0].split(' –')[0]:ep.name;
+    if(shortLabel.length*5>barW2) shortLabel=shortLabel.slice(0,Math.floor(barW2/5.5)-1)+'…';
+    ctx.fillText(shortLabel, mid, PAD.top+10);
     ctx.globalAlpha=1;
     ctx.setLineDash([]);
   });
