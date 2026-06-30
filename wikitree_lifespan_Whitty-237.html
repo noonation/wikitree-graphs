@@ -17,7 +17,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;heigh
 #main{display:flex;flex:1;overflow:hidden;min-height:0}
 #chart-wrap{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
 #axis-top{height:36px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border)}
-#bars-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+#bars-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;margin-top:80px}
 #bars-svg{display:block}
 #axis-bottom{height:36px;flex-shrink:0;position:relative;border-top:1px solid var(--border)}
 #controls{width:230px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;padding:14px;gap:13px;overflow-y:auto;flex-shrink:0}
@@ -83,6 +83,7 @@ a{color:#00b4f0}
 <div id="main">
   <div id="chart-wrap">
     <canvas id="axis-top" style="position:absolute;top:0;left:0;z-index:5;pointer-events:none"></canvas>
+    <canvas id="epidemic-canvas" style="position:absolute;top:36px;left:0;z-index:6;cursor:pointer"></canvas>
     <div id="bars-scroll">
       <canvas id="bars-svg"></canvas>
     </div>
@@ -246,88 +247,8 @@ function sorted(arr){
   return result;
 }
 
-function yearToX(yr){ return LABEL_W + (yr-MIN_YEAR)/(MAX_YEAR-MIN_YEAR)*(barW-LABEL_W-RIGHT_STRIP); }
+function yearToX(yr){ return LABEL_W + (yr-MIN_YEAR)/(MAX_YEAR-MIN_YEAR)*(barW-LABEL_W); }
 
-function drawEpidemicStrip(c, totalH){
-  var stripX = barW - RIGHT_STRIP + 8;
-  var stripW = RIGHT_STRIP - 10;
-  var YR_MIN = MIN_YEAR, YR_MAX = MAX_YEAR, YR_RANGE = YR_MAX - YR_MIN;
-
-  // Strip background
-  c.fillStyle = 'rgba(255,255,255,0.02)';
-  c.globalAlpha = 1;
-  c.fillRect(barW - RIGHT_STRIP, 0, RIGHT_STRIP, totalH);
-
-  // Vertical separator line
-  c.strokeStyle = 'rgba(255,255,255,0.08)';
-  c.lineWidth = 1;
-  c.beginPath(); c.moveTo(barW - RIGHT_STRIP, 0); c.lineTo(barW - RIGHT_STRIP, totalH); c.stroke();
-
-  // "Death year" label at top of strip
-  c.fillStyle = 'rgba(160,148,120,0.5)';
-  c.font = '8px Inter,sans-serif'; c.textAlign = 'center';
-  c.fillText('Epidemics', stripX + stripW/2, 10);
-
-  function epY(yr){ return (yr - YR_MIN) / YR_RANGE * totalH; }
-
-  // Draw each epidemic as a bar in the strip
-  EPIDEMICS.forEach(function(ep){
-    var y1 = epY(ep.years[0]);
-    var y2 = epY(ep.years[1]);
-    var py1 = epY(ep.peak[0]);
-    var py2 = epY(ep.peak[1]);
-    var isActive = activeEpidemic && activeEpidemic.name === ep.name;
-
-    // Outer span — faint
-    c.fillStyle = ep.color;
-    c.globalAlpha = isActive ? 0.25 : 0.1;
-    c.fillRect(stripX, y1, stripW, Math.max(1, y2 - y1));
-
-    // Peak — solid bar
-    c.globalAlpha = isActive ? 0.85 : 0.45;
-    c.fillRect(stripX, py1, stripW, Math.max(2, py2 - py1 + 1));
-
-    // Active highlight — left accent bar
-    if(isActive){
-      c.fillStyle = ep.color;
-      c.globalAlpha = 1;
-      c.fillRect(barW - RIGHT_STRIP, py1, 3, Math.max(2, py2 - py1 + 1));
-    }
-
-    // Label — only if peak is tall enough
-    var barH = Math.max(2, py2 - py1 + 1);
-    var midY = py1 + barH/2;
-    c.globalAlpha = isActive ? 1 : 0.6;
-    c.fillStyle = ep.color;
-    c.font = (isActive ? 'bold ' : '') + Math.min(10, Math.max(7, barH*0.7))+'px Inter,sans-serif';
-    c.textAlign = 'left';
-
-    // Truncate name to fit
-    var label = ep.name;
-    var maxChars = Math.floor(stripW / 5.5);
-    if(label.length > maxChars) label = label.slice(0, maxChars-1) + '…';
-    if(barH >= 6) c.fillText(label, stripX + 3, midY + 3);
-
-    // Year range on right
-    if(barH >= 10){
-      c.textAlign = 'right';
-      c.font = '7px Inter,sans-serif';
-      c.fillText(ep.peak[0]+(ep.peak[0]!==ep.peak[1]?'–'+ep.peak[1]:''), stripX+stripW-2, midY+3);
-    }
-    c.globalAlpha = 1;
-  });
-
-  // Horizontal year ticks in strip
-  c.fillStyle = 'rgba(160,148,120,0.2)'; c.textAlign='center';
-  c.font = '7px Inter,sans-serif';
-  for(var yr=1650; yr<=1950; yr+=50){
-    var y = epY(yr);
-    c.fillStyle = 'rgba(255,255,255,0.06)';
-    c.fillRect(stripX, y, stripW, 1);
-    c.fillStyle = 'rgba(160,148,120,0.3)';
-    c.fillText(yr, stripX+stripW/2, y-1);
-  }
-}
 
 function draw(){
   W = wrap.clientWidth;
@@ -356,8 +277,7 @@ function draw(){
     ctx.fillRect(x, 0, 1, totalH);
   }
 
-  // Right-side epidemic strip — always draw all epidemics
-  drawEpidemicStrip(ctx, totalH);
+
 
   // Country group labels and dividers
   if(groupByCountry){
@@ -428,25 +348,13 @@ function draw(){
 
   // Store vis for hit-testing
   window._vis = vis;
+  if(typeof drawEpidemicPanel==='function') drawEpidemicPanel();
 }
 
 function drawAxis(c, w, h, isTop){
   c.clearRect(0,0,w,h);
   c.fillStyle = 'rgba(10,15,26,0.92)';
   c.fillRect(0,0,w,h);
-
-  // Strip header in axis
-  c.fillStyle = 'rgba(255,255,255,0.02)';
-  c.fillRect(w - RIGHT_STRIP, 0, RIGHT_STRIP, h);
-  c.strokeStyle = 'rgba(255,255,255,0.08)'; c.lineWidth=1;
-  c.beginPath(); c.moveTo(w-RIGHT_STRIP,0); c.lineTo(w-RIGHT_STRIP,h); c.stroke();
-  if(activeEpidemic){
-    c.fillStyle=activeEpidemic.color; c.globalAlpha=0.9;
-    c.font='bold 9px Inter,sans-serif'; c.textAlign='center';
-    var label=activeEpidemic.name.length>22?activeEpidemic.name.slice(0,21)+'…':activeEpidemic.name;
-    c.fillText(label, w-RIGHT_STRIP+RIGHT_STRIP/2, isTop?12:h-6);
-    c.globalAlpha=1;
-  }
 
   c.fillStyle = 'rgba(100,90,70,0.5)';
   c.font = '10px Inter,sans-serif'; c.textAlign='center';
@@ -630,7 +538,7 @@ document.getElementById('clear-epidemic').onclick=function(){
   document.getElementById('epidemic-desc').textContent='';
   document.getElementById('epidemic-years').innerHTML='';
   this.style.display='none';
-  draw();
+  draw(); drawEpidemicPanel();
 };
 
 document.getElementById('group-select').onchange=function(){
@@ -638,7 +546,97 @@ document.getElementById('group-select').onchange=function(){
   draw();
 };
 
-window.addEventListener('resize', draw);
+
+var epCanvas = document.getElementById('epidemic-canvas');
+var epCtx = epCanvas ? epCanvas.getContext('2d') : null;
+var EP_H = 80;
+
+function drawEpidemicPanel(){
+  if(!epCtx) return;
+  var W2 = wrap.clientWidth;
+  epCanvas.width = W2; epCanvas.height = EP_H;
+  epCanvas.style.width = W2+'px'; epCanvas.style.height = EP_H+'px';
+  epCtx.clearRect(0,0,W2,EP_H);
+  epCtx.fillStyle='rgba(10,15,26,0.97)'; epCtx.fillRect(0,0,W2,EP_H);
+
+  // Year ticks
+  for(var yr=1650;yr<=1980;yr+=50){
+    var x=yearToX(yr);
+    epCtx.fillStyle='rgba(255,255,255,0.04)'; epCtx.fillRect(x,0,1,EP_H-12);
+    epCtx.fillStyle='rgba(160,148,120,0.3)';
+    epCtx.font='8px Inter,sans-serif'; epCtx.textAlign='center';
+    epCtx.fillText(yr, x, EP_H-2);
+  }
+
+  // Panel label
+  epCtx.fillStyle='rgba(100,90,70,0.5)'; epCtx.font='8px Inter,sans-serif'; epCtx.textAlign='left';
+  epCtx.fillText('EPIDEMICS — click to select', 4, 9);
+
+  // Rows
+  var usableH = EP_H-16;
+  var rh = Math.max(5, Math.floor(usableH/EPIDEMICS.length));
+
+  EPIDEMICS.forEach(function(ep,i){
+    var y = 12 + i*rh;
+    var isActive = activeEpidemic && activeEpidemic.name===ep.name;
+    var x1=yearToX(ep.years[0]), x2=yearToX(ep.years[1]);
+    var px1=yearToX(ep.peak[0]), px2=Math.max(yearToX(ep.peak[1]),yearToX(ep.peak[0])+2);
+
+    // Span
+    epCtx.fillStyle=ep.color; epCtx.globalAlpha=isActive?0.18:0.06;
+    epCtx.fillRect(x1,y,x2-x1,rh-1);
+    // Peak
+    epCtx.globalAlpha=isActive?0.9:0.4;
+    epCtx.fillRect(px1,y,px2-px1,rh-1);
+    // Active left accent
+    if(isActive){ epCtx.globalAlpha=1; epCtx.fillRect(x1,y,2,rh-1); }
+    // Label
+    if(rh>=7){
+      epCtx.globalAlpha=isActive?1:0.65;
+      epCtx.fillStyle=isActive?'#ffffff':ep.color;
+      epCtx.font=(isActive?'bold ':'')+Math.min(8,rh-1)+'px Inter,sans-serif';
+      epCtx.textAlign='left';
+      var lx=px2+3, label=ep.name;
+      if(lx+label.length*4.2>W2) lx=Math.max(x1+2,px1-label.length*4.2-2);
+      epCtx.fillText(label, lx, y+rh-1);
+    }
+    epCtx.globalAlpha=1;
+  });
+}
+
+epCanvas && epCanvas.addEventListener('click', function(e){
+  var rect=epCanvas.getBoundingClientRect();
+  var rh=Math.max(5,Math.floor((EP_H-16)/EPIDEMICS.length));
+  var i=Math.floor((e.clientY-rect.top-12)/rh);
+  if(i<0||i>=EPIDEMICS.length) return;
+  var ep=EPIDEMICS[i];
+  activeEpidemic=(activeEpidemic&&activeEpidemic.name===ep.name)?null:ep;
+  document.getElementById('epidemic-select').value=activeEpidemic?EPIDEMICS.indexOf(ep):'';
+  var desc=document.getElementById('epidemic-desc'), yrs=document.getElementById('epidemic-years'), cb=document.getElementById('clear-epidemic');
+  if(activeEpidemic){
+    desc.textContent=ep.desc;
+    yrs.innerHTML='<span style="color:'+ep.color+';font-weight:600">'+ep.years[0]+'–'+ep.years[1]+'</span>&nbsp;<span style="color:'+ep.color+'">Peak: '+ep.peak[0]+(ep.peak[0]!==ep.peak[1]?'–'+ep.peak[1]:'')+' · '+ep.regions.join(', ')+'</span>';
+    cb.style.display='block';
+  } else { desc.textContent=''; yrs.innerHTML=''; cb.style.display='none'; }
+  draw(); drawEpidemicPanel();
+});
+
+epCanvas && epCanvas.addEventListener('mousemove',function(e){
+  var rect=epCanvas.getBoundingClientRect();
+  var rh=Math.max(5,Math.floor((EP_H-16)/EPIDEMICS.length));
+  var i=Math.floor((e.clientY-rect.top-12)/rh);
+  var tt=document.getElementById('tooltip');
+  if(i>=0&&i<EPIDEMICS.length){
+    var ep=EPIDEMICS[i];
+    document.getElementById('tn').textContent=ep.name;
+    document.getElementById('ty').textContent='Span: '+ep.years[0]+'–'+ep.years[1]+' · Peak: '+ep.peak[0]+(ep.peak[0]!==ep.peak[1]?'–'+ep.peak[1]:'');
+    document.getElementById('tl').textContent=ep.regions.join(', ');
+    tt.style.display='block'; tt.style.left=(e.clientX+14)+'px'; tt.style.top=(e.clientY-10)+'px';
+  } else tt.style.display='none';
+});
+epCanvas && epCanvas.addEventListener('mouseleave',function(){ document.getElementById('tooltip').style.display='none'; });
+
+window.addEventListener('resize', function(){ draw(); drawEpidemicPanel(); });
 draw();
 </script>
 </body>
