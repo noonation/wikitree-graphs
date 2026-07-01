@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WikiTree Mycelium Tree &mdash; Whitty-237</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1/dist/3d-force-graph.min.js"></script>
 <script src="wikitree_graph_Whitty-237_bio_20_data.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -66,6 +65,11 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 #mgr-count .match-num{color:var(--edge-sp);font-weight:600}
 #clear-mgr{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
 #clear-mgr:hover{color:var(--text)}
+#surname-net-select{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;font-family:'Inter',sans-serif;outline:none;cursor:pointer;margin-bottom:4px}
+#surname-net-count{font-size:11px;color:var(--text2);margin-top:4px;min-height:16px}
+#surname-net-count .match-num{color:#ff9f7e;font-weight:600}
+#clear-surname-net{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
+#clear-surname-net:hover{color:var(--text)}
 #sim-status{font-size:11px;color:var(--text3);text-align:center;min-height:16px}
 #detail{position:absolute;bottom:16px;left:16px;width:280px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px;z-index:20;display:none;max-height:70vh;overflow-y:auto}
 #detail .d-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--text);margin-bottom:2px;padding-right:20px}
@@ -140,6 +144,12 @@ a{color:var(--edge-pc)}
       <button id="clear-mgr">Clear manager filter</button>
     </div>
     <div class="ctrl-section">
+      <h3>View surname network</h3>
+      <select id="surname-net-select"><option value="">Select a surname…</option></select>
+      <div id="surname-net-count"></div>
+      <button id="clear-surname-net">Show full network</button>
+    </div>
+    <div class="ctrl-section">
       <h3>Generations removed from starting profile</h3>
       <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">5</span></div>
       <input type="range" id="deg-slider" min="0" max="11" value="5" step="1">
@@ -200,6 +210,7 @@ var showDeg = 5, showPC = true, showSib = true, showSp = true;
 var linkDist = 30, repelStr = 80;
 var bioFilter = '', bioMatchIds = null;
 var mgrFilter = null;
+var surnameNetwork = null;
 var simPaused = false;
 var transform = d3.zoomIdentity;
 var currentSim = null;
@@ -244,6 +255,7 @@ function nodeRadius(n){
 function degColor(deg){ return DEG_COLORS[Math.min(deg, DEG_COLORS.length-1)]; }
 
 function nodeOpacity(d){
+  if(surnameNetwork){return d._snP?1:0.25;}
   if(mgrFilter && d.manager !== mgrFilter) return 0.28;
   var vbm=window._visibleBioMatchIds, hasVis=vbm&&vbm.size>0;
   if(!hasVis) return 1;
@@ -295,12 +307,31 @@ function buildGraph(){
   window._dimIds=null;
   applyBioFilter();
 
-  var visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
-  var visIds=new Set(visNodes.map(function(n){return n.id;}));
-  var visEdges=RAW.edges.filter(function(e){
-    return visIds.has(e.s)&&visIds.has(e.t)&&
-      (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
-  });
+  var visNodes,visEdges;
+  if(surnameNetwork){
+    var snPrimIds=new Set(RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).map(function(n){return n.id;}));
+    var snSecIds=new Set();
+    RAW.edges.forEach(function(e){
+      if(snPrimIds.has(e.s)) snSecIds.add(e.t);
+      if(snPrimIds.has(e.t)) snSecIds.add(e.s);
+    });
+    snPrimIds.forEach(function(id){snSecIds.delete(id);});
+    var snAllIds=new Set([...snPrimIds,...snSecIds]);
+    visNodes=RAW.nodes.filter(function(n){return snAllIds.has(n.id);});
+    visEdges=RAW.edges.filter(function(e){
+      return snAllIds.has(e.s)&&snAllIds.has(e.t)&&
+        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
+    });
+    visNodes.forEach(function(n){n._snP=snPrimIds.has(n.id);});
+  } else {
+    visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
+    var visIds=new Set(visNodes.map(function(n){return n.id;}));
+    visEdges=RAW.edges.filter(function(e){
+      return visIds.has(e.s)&&visIds.has(e.t)&&
+        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
+    });
+    visNodes.forEach(function(n){n._snP=false;});
+  }
   var simNodes=visNodes.map(function(n){return Object.assign({},n);});
   var nodeIdx={};
   simNodes.forEach(function(n,i){nodeIdx[n.id]=i;});
@@ -338,7 +369,7 @@ function buildGraph(){
         .attr('stroke','#ffffff').attr('stroke-width',3).attr('stroke-opacity',1);
     }
     grp.append('circle').attr('class','node-bg').attr('r',r)
-      .attr('fill',(hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg))
+      .attr('fill',function(){if(surnameNetwork&&d._snP)return '#ff9f7e';return (hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg);}())
       .attr('stroke',isRoot?'#fff':'rgba(255,255,255,0.12)')
       .attr('stroke-width',isRoot?2.5:0.8)
       .attr('fill-opacity',nodeOpacity(d))
@@ -407,12 +438,31 @@ function build3D(){
   if(currentSim){ currentSim.stop(); currentSim=null; }
   applyBioFilter();
 
-  var visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
-  var visIds=new Set(visNodes.map(function(n){return n.id;}));
-  var visEdges=RAW.edges.filter(function(e){
-    return visIds.has(e.s)&&visIds.has(e.t)&&
-      (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
-  });
+  var visNodes,visEdges;
+  if(surnameNetwork){
+    var snPrimIds=new Set(RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).map(function(n){return n.id;}));
+    var snSecIds=new Set();
+    RAW.edges.forEach(function(e){
+      if(snPrimIds.has(e.s)) snSecIds.add(e.t);
+      if(snPrimIds.has(e.t)) snSecIds.add(e.s);
+    });
+    snPrimIds.forEach(function(id){snSecIds.delete(id);});
+    var snAllIds=new Set([...snPrimIds,...snSecIds]);
+    visNodes=RAW.nodes.filter(function(n){return snAllIds.has(n.id);});
+    visEdges=RAW.edges.filter(function(e){
+      return snAllIds.has(e.s)&&snAllIds.has(e.t)&&
+        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
+    });
+    visNodes.forEach(function(n){n._snP=snPrimIds.has(n.id);});
+  } else {
+    visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
+    var visIds=new Set(visNodes.map(function(n){return n.id;}));
+    visEdges=RAW.edges.filter(function(e){
+      return visIds.has(e.s)&&visIds.has(e.t)&&
+        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
+    });
+    visNodes.forEach(function(n){n._snP=false;});
+  }
 
   // Place nodes on spherical shells by degree
   // deg 0 = fixed at origin; deg N = shell at radius N * SHELL_GAP
@@ -681,6 +731,24 @@ bioInput.oninput=function(){
 };
 clearBio.onclick=function(){bioInput.value='';bioFilter='';bioMatchIds=null;bioCount.innerHTML='';clearBio.style.display='none';var l=document.getElementById('bio-match-list');l.innerHTML='';l.style.display='none';buildGraph();};
 
+document.getElementById('surname-net-select').onchange=function(){
+  surnameNetwork=this.value||null;
+  var cb=document.getElementById('clear-surname-net');
+  var ce=document.getElementById('surname-net-count');
+  if(surnameNetwork){
+    var cnt=RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).length;
+    ce.innerHTML='<span class="match-num">'+cnt+'</span> people — and their connections';
+    cb.style.display='block';
+  } else { ce.innerHTML=''; cb.style.display='none'; }
+  buildGraph();
+};
+document.getElementById('clear-surname-net').onclick=function(){
+  surnameNetwork=null;
+  document.getElementById('surname-net-select').value='';
+  document.getElementById('surname-net-count').innerHTML='';
+  this.style.display='none';
+  buildGraph();
+};
 document.getElementById('mgr-select').onchange=function(){
   mgrFilter=this.value?+this.value:null;
   var cb=document.getElementById('clear-mgr'),ce=document.getElementById('mgr-count');
@@ -745,6 +813,12 @@ window.addEventListener('resize',function(){
   var mgrList=Object.keys(mgrCounts).map(function(id){return {id:+id,count:mgrCounts[id],label:mgrNames[id]||'User '+id};}).sort(function(a,b){return b.count-a.count;});
   var sel=document.getElementById('mgr-select');
   mgrList.forEach(function(m){var opt=document.createElement('option');opt.value=m.id;opt.textContent=m.label+' ('+m.count+')';sel.appendChild(opt);});
+  var snCts={};
+  RAW.nodes.forEach(function(n){if(n.last) snCts[n.last]=(snCts[n.last]||0)+1;});
+  var snNetSel=document.getElementById('surname-net-select');
+  Object.entries(snCts).sort(function(a,b){return b[1]-a[1];}).slice(0,20).forEach(function(p){
+    var o=document.createElement('option'); o.value=p[0]; o.textContent=p[0]+' ('+p[1]+')'; snNetSel.appendChild(o);
+  });
   buildGraph();
 })();
 </script>
