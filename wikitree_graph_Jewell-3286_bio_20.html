@@ -243,7 +243,7 @@ function nodeRadius(n){
 function degColor(deg){ return DEG_COLORS[Math.min(deg, DEG_COLORS.length-1)]; }
 
 function nodeOpacity(d){
-  if(surnameNetwork){return d._snP?1:d._snS?0.55:0.15;}
+  if(surnameNetwork){return d._snP?1:d._snS?0.5:0.2;}
   if(mgrFilter && d.manager !== mgrFilter) return 0.28;
   var vbm=window._visibleBioMatchIds, hasVis=vbm&&vbm.size>0;
   if(!hasVis) return 1;
@@ -362,9 +362,9 @@ function buildGraph(){
         .attr('stroke','#ffffff').attr('stroke-width',3).attr('stroke-opacity',1);
     }
     grp.append('circle').attr('class','node-bg').attr('r',r)
-      .attr('fill',function(){if(surnameNetwork&&d._snP)return '#ff9f7e';return (hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg);}())
-      .attr('stroke',isRoot?'#fff':'rgba(255,255,255,0.12)')
-      .attr('stroke-width',isRoot?2.5:0.8)
+      .attr('fill',(hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg))
+      .attr('stroke',function(){if(surnameNetwork&&d._snP) return 'rgba(255,255,255,0.9)'; return isRoot?'#fff':'rgba(255,255,255,0.12)';}())
+      .attr('stroke-width',function(){if(surnameNetwork&&d._snP) return 2; return isRoot?2.5:0.8;}())
       .attr('fill-opacity',nodeOpacity(d))
       .attr('filter',(hasVis&&vbm.has(d.id))?'url(#bio-glow)':(isRoot?'url(#root-glow)':null));
     if(isRoot&&d.photo){
