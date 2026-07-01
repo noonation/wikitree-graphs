@@ -721,9 +721,9 @@ document.getElementById('surname-net-select').onchange=function(){
     ce.innerHTML='<span class="match-num">'+cnt+'</span> people — showing their connections';
     cb.style.display='block';
     surnameFilter=null;
-    document.getElementById('surname-select').value='';
-    document.getElementById('surname-count').innerHTML='';
-    document.getElementById('clear-surname').style.display='none';
+    var snEl=document.getElementById('surname-select'); if(snEl) snEl.value='';
+    var snCt=document.getElementById('surname-count'); if(snCt) snCt.innerHTML='';
+    var snCl=document.getElementById('clear-surname'); if(snCl) snCl.style.display='none';
   } else { ce.innerHTML=''; cb.style.display='none'; }
   buildGraph();
 };
