@@ -766,8 +766,9 @@ document.getElementById('deg-slider').oninput=function(){showDeg=+this.value;doc
     it.onclick=function(){
       this.classList.toggle('off');var on=!this.classList.contains('off');
       if(id==='tog-pc')showPC=on;else if(id==='tog-sib')showSib=on;else showSp=on;buildGraph();
+    };
   };
-};
+});
 document.getElementById('strength-slider').oninput=function(){
   linkDist=+this.value;document.getElementById('strength-val').textContent=this.value;
   if(!is3D&&currentSim){currentSim.force('link').distance(function(d){return d.type==='sibling'?linkDist*.55:d.type==='spouse'?linkDist*.65:linkDist;});currentSim.alpha(0.3).restart();}
