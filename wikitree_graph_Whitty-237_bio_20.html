@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WikiTree Network &mdash; Whitty-237</title>
+<title>WikiTree Mycelium Tree &mdash; Whitty-237</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1/dist/3d-force-graph.min.js"></script>
 <script src="wikitree_graph_Whitty-237_bio_20_data.js"></script>
@@ -152,16 +152,10 @@ a{color:var(--edge-pc)}
       <button id="clear-surname">Clear surname filter</button>
     </div>
     <div class="ctrl-section">
-      <h3>Degrees of separation</h3>
+      <h3>Generations removed from starting profile</h3>
       <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">5</span></div>
       <input type="range" id="deg-slider" min="0" max="11" value="5" step="1">
       <div style="font-size:10px;color:var(--text3);margin-top:4px">Max in dataset: 11</div>
-    </div>
-    <div class="ctrl-section">
-      <h3>Edge types</h3>
-      <div class="toggle-row" id="tog-pc"><span class="toggle-dot" style="background:var(--edge-pc)"></span><span class="ctrl-label">Parent&ndash;child</span></div>
-      <div class="toggle-row" id="tog-sib"><span class="toggle-dot" style="background:var(--edge-sib)"></span><span class="ctrl-label">Siblings</span></div>
-      <div class="toggle-row" id="tog-sp"><span class="toggle-dot" style="background:var(--edge-sp)"></span><span class="ctrl-label">Spouses</span></div>
     </div>
     <div class="ctrl-section">
       <h3>Node colour &mdash; degree</h3>
@@ -846,8 +840,8 @@ window.addEventListener('resize',function(){
   RAW=RAW_DATA;
   RAW.nodes.forEach(function(n){idMap[n.id]=n;});
   var years=RAW.nodes.map(function(n){return +n.by;}).filter(function(y){return y>1000;});
-  document.getElementById('h-title').textContent='WikiTree — '+RAW.meta.root_id;
-  document.getElementById('h-subtitle').textContent='Force-directed graph · '+RAW.meta.node_count.toLocaleString()+' people · '+RAW.meta.max_degree+' degrees';
+  document.getElementById('h-title').textContent='WikiTree Mycelium Tree — '+RAW.meta.root_id;
+  document.getElementById('h-subtitle').textContent='Mycelium Tree · '+RAW.meta.node_count.toLocaleString()+' people · '+RAW.meta.max_degree+' degrees';
   document.getElementById('h-years').textContent=Math.min.apply(null,years)+'–'+Math.max.apply(null,years);
   var maxDeg=RAW.meta.max_degree||15;
   document.getElementById('deg-slider').max=maxDeg;
