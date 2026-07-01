@@ -65,7 +65,8 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 #mgr-count .match-num{color:var(--edge-sp);font-weight:600}
 #clear-mgr{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
 #clear-mgr:hover{color:var(--text)}
-#surname-net-select{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;font-family:'Inter',sans-serif;outline:none;cursor:pointer;margin-bottom:4px}
+#surname-net-input{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;font-family:'Inter',sans-serif;outline:none;margin-bottom:4px}
+#surname-net-input:focus{border-color:#ff9f7e}
 #surname-net-count{font-size:11px;color:var(--text2);margin-top:4px;min-height:16px}
 #surname-net-count .match-num{color:#ff9f7e;font-weight:600}
 #clear-surname-net{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
@@ -151,10 +152,10 @@ a{color:var(--edge-pc)}
       <button id="clear-mgr">Clear manager filter</button>
     </div>
     <div class="ctrl-section">
-      <h3>View surname network</h3>
-      <select id="surname-net-select"><option value="">Select a surname…</option></select>
+      <h3>View network by surname</h3>
+      <input id="surname-net-input" type="text" placeholder="Type a surname…" autocomplete="off" spellcheck="false">
       <div id="surname-net-count"></div>
-      <button id="clear-surname-net">Show full network</button>
+      <button id="clear-surname-net">Clear</button>
     </div>
     <div class="ctrl-section">
       <h3>Node colour &mdash; degree</h3>
@@ -718,24 +719,52 @@ bioInput.oninput=function(){
 };
 clearBio.onclick=function(){bioInput.value='';bioFilter='';bioMatchIds=null;bioCount.innerHTML='';clearBio.style.display='none';var l=document.getElementById('bio-match-list');l.innerHTML='';l.style.display='none';buildGraph();};
 
-document.getElementById('surname-net-select').onchange=function(){
-  surnameNetwork=this.value||null;
-  var cb=document.getElementById('clear-surname-net');
-  var ce=document.getElementById('surname-net-count');
-  if(surnameNetwork){
-    var cnt=RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).length;
-    ce.innerHTML='<span class="match-num">'+cnt+'</span> people — and their connections';
-    cb.style.display='block';
-  } else { ce.innerHTML=''; cb.style.display='none'; }
-  buildGraph();
-};
-document.getElementById('clear-surname-net').onclick=function(){
-  surnameNetwork=null;
-  document.getElementById('surname-net-select').value='';
-  document.getElementById('surname-net-count').innerHTML='';
-  this.style.display='none';
-  buildGraph();
-};
+(function(){
+  var snTimer=null;
+  var snInput=document.getElementById('surname-net-input');
+  var snCb=document.getElementById('clear-surname-net');
+  var snCe=document.getElementById('surname-net-count');
+  if(!snInput) return;
+  snInput.oninput=function(){
+    clearTimeout(snTimer);
+    var q=this.value.trim();
+    snTimer=setTimeout(function(){
+      if(q.length>=2){
+        // Case-insensitive match — find exact surname
+        var ql=q.toLowerCase();
+        var match=null;
+        RAW.nodes.forEach(function(n){
+          if(n.last&&n.last.toLowerCase()===ql) match=n.last;
+        });
+        surnameNetwork=match||q;
+        var cnt=RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).length;
+        if(cnt>0){
+          snCe.innerHTML='<span class="match-num">'+cnt+'</span> people — and their connections';
+          snCb.style.display='block';
+        } else {
+          snCe.innerHTML='<span style="color:var(--text3)">No matches for “'+q+'”</span>';
+          snCb.style.display='none';
+          surnameNetwork=null;
+        }
+      } else {
+        surnameNetwork=null;
+        snCe.innerHTML='';
+        snCb.style.display='none';
+      }
+      buildGraph();
+    }, 300);
+  };
+  snInput.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){ this.value=''; surnameNetwork=null; snCe.innerHTML=''; snCb.style.display='none'; buildGraph(); }
+  });
+  snCb.onclick=function(){
+    surnameNetwork=null;
+    snInput.value='';
+    snCe.innerHTML='';
+    this.style.display='none';
+    buildGraph();
+  };
+})();
 document.getElementById('mgr-select').onchange=function(){
   mgrFilter=this.value?+this.value:null;
   var cb=document.getElementById('clear-mgr'),ce=document.getElementById('mgr-count');
@@ -820,12 +849,7 @@ wrap   = document.getElementById('canvas-wrap');
   var mgrList=Object.keys(mgrCounts).map(function(id){return {id:+id,count:mgrCounts[id],label:mgrNames[id]||'User '+id};}).sort(function(a,b){return b.count-a.count;});
   var sel=document.getElementById('mgr-select');
   mgrList.forEach(function(m){var opt=document.createElement('option');opt.value=m.id;opt.textContent=m.label+' ('+m.count+')';sel.appendChild(opt);});
-  var snCts={};
-  RAW.nodes.forEach(function(n){if(n.last) snCts[n.last]=(snCts[n.last]||0)+1;});
-  var snNetSel=document.getElementById('surname-net-select');
-  Object.entries(snCts).sort(function(a,b){return b[1]-a[1];}).slice(0,20).forEach(function(p){
-    var o=document.createElement('option'); o.value=p[0]; o.textContent=p[0]+' ('+p[1]+')'; snNetSel.appendChild(o);
-  });
+
   buildGraph();
 })();
 </script>
