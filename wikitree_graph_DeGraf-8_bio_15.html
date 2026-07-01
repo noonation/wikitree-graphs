@@ -310,6 +310,7 @@ function buildGraph(){
 
   var visNodes,visEdges;
   if(surnameNetwork){
+    // Tag all nodes — keep full network visible, just dim non-matches
     var snPrimIds=new Set(RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).map(function(n){return n.id;}));
     var snSecIds=new Set();
     RAW.edges.forEach(function(e){
@@ -317,10 +318,11 @@ function buildGraph(){
       if(snPrimIds.has(e.t)) snSecIds.add(e.s);
     });
     snPrimIds.forEach(function(id){snSecIds.delete(id);});
-    var snAllIds=new Set([...snPrimIds,...snSecIds]);
-    visNodes=RAW.nodes.filter(function(n){return snAllIds.has(n.id);});
+    // Show ALL nodes within showDeg, tag each for opacity
+    visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
+    var visIds=new Set(visNodes.map(function(n){return n.id;}));
     visEdges=RAW.edges.filter(function(e){
-      return snAllIds.has(e.s)&&snAllIds.has(e.t)&&
+      return visIds.has(e.s)&&visIds.has(e.t)&&
         (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
     });
     visNodes.forEach(function(n){
@@ -444,6 +446,7 @@ function build3D(){
 
   var visNodes,visEdges;
   if(surnameNetwork){
+    // Tag all nodes — keep full network visible, just dim non-matches
     var snPrimIds=new Set(RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).map(function(n){return n.id;}));
     var snSecIds=new Set();
     RAW.edges.forEach(function(e){
@@ -451,10 +454,11 @@ function build3D(){
       if(snPrimIds.has(e.t)) snSecIds.add(e.s);
     });
     snPrimIds.forEach(function(id){snSecIds.delete(id);});
-    var snAllIds=new Set([...snPrimIds,...snSecIds]);
-    visNodes=RAW.nodes.filter(function(n){return snAllIds.has(n.id);});
+    // Show ALL nodes within showDeg, tag each for opacity
+    visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
+    var visIds=new Set(visNodes.map(function(n){return n.id;}));
     visEdges=RAW.edges.filter(function(e){
-      return snAllIds.has(e.s)&&snAllIds.has(e.t)&&
+      return visIds.has(e.s)&&visIds.has(e.t)&&
         (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
     });
     visNodes.forEach(function(n){
