@@ -284,7 +284,15 @@ function drawEdges(){
     ctx.beginPath(); ctx.moveTo(src.x,src.y); ctx.lineTo(tgt.x,tgt.y);
     ctx.strokeStyle=EDGE_COLORS[e.type]||'#555';
     ctx.lineWidth=e.type==='parent-child'?1.8:e.type==='spouse'?2.2:1.1;
-    ctx.globalAlpha=dim?0.12:(hasVis2?(bioEdge?0.7:0.08):0.9);
+    var snAlpha=0.9;
+    if(surnameNetwork){
+      var srcP=src._snP, tgtP=tgt._snP, srcS=src._snS, tgtS=tgt._snS;
+      if(srcP&&tgtP)      snAlpha=0.9;
+      else if(srcP||tgtP) snAlpha=0.45;
+      else if(srcS&&tgtS) snAlpha=0.2;
+      else                snAlpha=0.05;
+    }
+    ctx.globalAlpha=surnameNetwork?snAlpha:(dim?0.12:(hasVis2?(bioEdge?0.7:0.08):0.9));
     ctx.stroke();
   }
   ctx.restore();
