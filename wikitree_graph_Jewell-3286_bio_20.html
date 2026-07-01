@@ -747,9 +747,12 @@ document.getElementById('clear-mgr').onclick=function(){mgrFilter=null;document.
 
 document.getElementById('deg-slider').oninput=function(){showDeg=+this.value;document.getElementById('deg-val').textContent=this.value;buildGraph();};
 ['tog-pc','tog-sib','tog-sp'].forEach(function(id){
-  document.getElementById(id).onclick=function(){
+  const it = document.getElementById(id);
+  if (it) {
+    it.onclick=function(){
     this.classList.toggle('off');var on=!this.classList.contains('off');
     if(id==='tog-pc')showPC=on;else if(id==='tog-sib')showSib=on;else showSp=on;buildGraph();
+  };
   };
 });
 document.getElementById('strength-slider').oninput=function(){
