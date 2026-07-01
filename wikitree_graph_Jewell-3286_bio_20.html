@@ -217,22 +217,8 @@ var currentSim = null;
 var is3D = false;
 var graph3d = null;
 
-var wrap   = document.getElementById('canvas-wrap');
-var canvas = document.getElementById('edge-canvas');
-var ctx    = canvas.getContext('2d');
-var svgEl  = document.getElementById('node-svg');
-var svg    = d3.select(svgEl);
-var w = wrap.clientWidth, h = wrap.clientHeight;
-canvas.width = w; canvas.height = h;
-svg.attr('width', w).attr('height', h);
-
-var zoom = d3.zoom().scaleExtent([0.02,12])
-  .on('zoom', function(e){
-    transform = e.transform;
-    svg.select('g').attr('transform', transform);
-    drawEdges();
-  });
-svg.call(zoom);
+var wrap, canvas, ctx, svgEl, svg, zoom;
+var w = 0, h = 0;
 
 function buildLegend(maxDeg){
   var leg = document.getElementById('deg-legend');
@@ -795,6 +781,22 @@ window.addEventListener('resize',function(){
 
 // ── Boot ─────────────────────────────────────────────────────
 window.onload=function(){
+  wrap   = document.getElementById('canvas-wrap');
+  canvas = document.getElementById('edge-canvas');
+  ctx    = canvas.getContext('2d');
+  svgEl  = document.getElementById('node-svg');
+  svg    = d3.select(svgEl);
+  w = wrap.clientWidth; h = wrap.clientHeight;
+  canvas.width = w; canvas.height = h;
+  svg.attr('width', w).attr('height', h);
+  zoom = d3.zoom().scaleExtent([0.02,12])
+    .on('zoom', function(e){
+      transform = e.transform;
+      svg.select('g').attr('transform', transform);
+      drawEdges();
+    });
+  svg.call(zoom);
+
 (function(){
   var RAW_DATA=window.GRAPH_DATA;
   if(!RAW_DATA){ document.getElementById('h-subtitle').textContent='Error: could not load wikitree_graph_Jewell-3286_bio_20_data.js. Keep both files in the same folder.'; return; }
