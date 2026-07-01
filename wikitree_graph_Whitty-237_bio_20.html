@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WikiTree Mycelium Tree &mdash; Whitty-237</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1/dist/3d-force-graph.min.js"></script>
 <script src="wikitree_graph_Whitty-237_bio_20_data.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -65,18 +66,6 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bac
 #mgr-count .match-num{color:var(--edge-sp);font-weight:600}
 #clear-mgr{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
 #clear-mgr:hover{color:var(--text)}
-#surname-select{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;font-family:'Inter',sans-serif;outline:none;cursor:pointer}
-#surname-select:focus{border-color:#c8a2ff}
-#surname-count{font-size:11px;color:var(--text2);margin-top:5px;min-height:16px}
-#surname-count .match-num{color:#c8a2ff;font-weight:600}
-#clear-surname{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
-#clear-surname:hover{color:var(--text)}
-#surname-net-select{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;font-family:'Inter',sans-serif;outline:none;cursor:pointer}
-#surname-net-select:focus{border-color:#ff9f7e}
-#surname-net-count{font-size:11px;color:var(--text2);margin-top:5px;min-height:16px}
-#surname-net-count .match-num{color:#ff9f7e;font-weight:600}
-#clear-surname-net{display:none;width:100%;margin-top:4px;padding:5px;background:transparent;border:1px solid var(--border2);border-radius:5px;color:var(--text3);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
-#clear-surname-net:hover{color:var(--text)}
 #sim-status{font-size:11px;color:var(--text3);text-align:center;min-height:16px}
 #detail{position:absolute;bottom:16px;left:16px;width:280px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px;z-index:20;display:none;max-height:70vh;overflow-y:auto}
 #detail .d-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--text);margin-bottom:2px;padding-right:20px}
@@ -151,23 +140,12 @@ a{color:var(--edge-pc)}
       <button id="clear-mgr">Clear manager filter</button>
     </div>
     <div class="ctrl-section">
-      <h3>Filter by surname</h3>
-      <select id="surname-select"><option value="">All surnames</option></select>
-      <div id="surname-count"></div>
-      <button id="clear-surname">Clear surname filter</button>
-    </div>
-    <div class="ctrl-section">
-      <h3>View surname network</h3>
-      <select id="surname-net-select"><option value="">Select a surname…</option></select>
-      <div id="surname-net-count"></div>
-      <button id="clear-surname-net">Show full network</button>
-    </div>
-    <div class="ctrl-section">
       <h3>Generations removed from starting profile</h3>
       <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">5</span></div>
       <input type="range" id="deg-slider" min="0" max="11" value="5" step="1">
       <div style="font-size:10px;color:var(--text3);margin-top:4px">Max in dataset: 11</div>
     </div>
+
     <div class="ctrl-section">
       <h3>Node colour &mdash; degree</h3>
       <div id="deg-legend"></div>
@@ -222,8 +200,6 @@ var showDeg = 5, showPC = true, showSib = true, showSp = true;
 var linkDist = 30, repelStr = 80;
 var bioFilter = '', bioMatchIds = null;
 var mgrFilter = null;
-var surnameFilter = null;
-var surnameNetwork = null;
 var simPaused = false;
 var transform = d3.zoomIdentity;
 var currentSim = null;
@@ -268,8 +244,6 @@ function nodeRadius(n){
 function degColor(deg){ return DEG_COLORS[Math.min(deg, DEG_COLORS.length-1)]; }
 
 function nodeOpacity(d){
-  if(surnameNetwork){ return d._snP ? 1 : 0.25; }
-  if(surnameFilter && d.last !== surnameFilter) return 0.08;
   if(mgrFilter && d.manager !== mgrFilter) return 0.28;
   var vbm=window._visibleBioMatchIds, hasVis=vbm&&vbm.size>0;
   if(!hasVis) return 1;
@@ -290,17 +264,14 @@ function drawEdges(){
     var src=typeof e.source==='object'?e.source:nodes[e.source];
     var tgt=typeof e.target==='object'?e.target:nodes[e.target];
     if(!src||!tgt||src.x==null||tgt.x==null) continue;
-    var surnameDim=surnameFilter&&src.last!==surnameFilter&&tgt.last!==surnameFilter;
     var mgrDim=mgrFilter&&src.manager!==mgrFilter&&tgt.manager!==mgrFilter;
-    var dim=surnameDim||mgrDim||(dimIds&&!dimIds.has(src.id)&&!dimIds.has(tgt.id));
+    var dim=mgrDim||(dimIds&&!dimIds.has(src.id)&&!dimIds.has(tgt.id));
     var vbm2=window._visibleBioMatchIds, hasVis2=vbm2&&vbm2.size>0;
     var bioEdge=hasVis2&&(vbm2.has(src.id)||vbm2.has(tgt.id));
     ctx.beginPath(); ctx.moveTo(src.x,src.y); ctx.lineTo(tgt.x,tgt.y);
-    var pIds=window._pathIds;
-    var onPath=pIds&&(pIds.has(src.id)&&pIds.has(tgt.id));
-    ctx.strokeStyle=onPath?'#ffffff':(EDGE_COLORS[e.type]||'#555');
-    ctx.lineWidth=onPath?2.5:(e.type==='parent-child'?1.8:e.type==='spouse'?2.2:1.1);
-    ctx.globalAlpha=onPath?0.95:dim?0.12:(hasVis2?(bioEdge?0.7:0.08):(pIds?0.06:0.9));
+    ctx.strokeStyle=EDGE_COLORS[e.type]||'#555';
+    ctx.lineWidth=e.type==='parent-child'?1.8:e.type==='spouse'?2.2:1.1;
+    ctx.globalAlpha=dim?0.12:(hasVis2?(bioEdge?0.7:0.08):0.9);
     ctx.stroke();
   }
   ctx.restore();
@@ -324,31 +295,12 @@ function buildGraph(){
   window._dimIds=null;
   applyBioFilter();
 
-  var visNodes,visEdges;
-  if(surnameNetwork){
-    var primaryIds=new Set(RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).map(function(n){return n.id;}));
-    var secondaryIds=new Set();
-    RAW.edges.forEach(function(e){
-      if(primaryIds.has(e.s)) secondaryIds.add(e.t);
-      if(primaryIds.has(e.t)) secondaryIds.add(e.s);
-    });
-    primaryIds.forEach(function(id){secondaryIds.delete(id);});
-    var networkIds=new Set([...primaryIds,...secondaryIds]);
-    visNodes=RAW.nodes.filter(function(n){return networkIds.has(n.id);});
-    visEdges=RAW.edges.filter(function(e){
-      return networkIds.has(e.s)&&networkIds.has(e.t)&&
-        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
-    });
-    visNodes.forEach(function(n){n._snP=primaryIds.has(n.id);});
-  } else {
-    visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
-    var visIds=new Set(visNodes.map(function(n){return n.id;}));
-    visEdges=RAW.edges.filter(function(e){
-      return visIds.has(e.s)&&visIds.has(e.t)&&
-        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
-    });
-    visNodes.forEach(function(n){n._snP=false;});
-  }
+  var visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
+  var visIds=new Set(visNodes.map(function(n){return n.id;}));
+  var visEdges=RAW.edges.filter(function(e){
+    return visIds.has(e.s)&&visIds.has(e.t)&&
+      (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
+  });
   var simNodes=visNodes.map(function(n){return Object.assign({},n);});
   var nodeIdx={};
   simNodes.forEach(function(n,i){nodeIdx[n.id]=i;});
@@ -386,7 +338,7 @@ function buildGraph(){
         .attr('stroke','#ffffff').attr('stroke-width',3).attr('stroke-opacity',1);
     }
     grp.append('circle').attr('class','node-bg').attr('r',r)
-      .attr('fill',function(){ if(surnameNetwork&&d._snP) return '#ff9f7e'; if(surnameFilter&&d.last===surnameFilter) return '#c8a2ff'; return (hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg); }())
+      .attr('fill',(hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg))
       .attr('stroke',isRoot?'#fff':'rgba(255,255,255,0.12)')
       .attr('stroke-width',isRoot?2.5:0.8)
       .attr('fill-opacity',nodeOpacity(d))
@@ -455,31 +407,12 @@ function build3D(){
   if(currentSim){ currentSim.stop(); currentSim=null; }
   applyBioFilter();
 
-  var visNodes,visEdges;
-  if(surnameNetwork){
-    var primaryIds=new Set(RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).map(function(n){return n.id;}));
-    var secondaryIds=new Set();
-    RAW.edges.forEach(function(e){
-      if(primaryIds.has(e.s)) secondaryIds.add(e.t);
-      if(primaryIds.has(e.t)) secondaryIds.add(e.s);
-    });
-    primaryIds.forEach(function(id){secondaryIds.delete(id);});
-    var networkIds=new Set([...primaryIds,...secondaryIds]);
-    visNodes=RAW.nodes.filter(function(n){return networkIds.has(n.id);});
-    visEdges=RAW.edges.filter(function(e){
-      return networkIds.has(e.s)&&networkIds.has(e.t)&&
-        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
-    });
-    visNodes.forEach(function(n){n._snP=primaryIds.has(n.id);});
-  } else {
-    visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
-    var visIds=new Set(visNodes.map(function(n){return n.id;}));
-    visEdges=RAW.edges.filter(function(e){
-      return visIds.has(e.s)&&visIds.has(e.t)&&
-        (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
-    });
-    visNodes.forEach(function(n){n._snP=false;});
-  }
+  var visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
+  var visIds=new Set(visNodes.map(function(n){return n.id;}));
+  var visEdges=RAW.edges.filter(function(e){
+    return visIds.has(e.s)&&visIds.has(e.t)&&
+      (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
+  });
 
   // Place nodes on spherical shells by degree
   // deg 0 = fixed at origin; deg N = shell at radius N * SHELL_GAP
@@ -627,38 +560,6 @@ function zoomToMatches(){
     d3.zoomIdentity.translate(w/2-sc*(x0+x1)/2,h/2-sc*(y0+y1)/2).scale(sc));
 }
 
-
-function findPathToRoot(targetId){
-  var simNodes=window._simNodes||[], simEdges=window._simEdges||[];
-  var root=simNodes.find(function(n){return n.deg===0;});
-  if(!root) return [];
-  if(root.id===targetId) return [targetId];
-  var adj={};
-  simNodes.forEach(function(n){adj[n.id]=[];});
-  simEdges.forEach(function(e){
-    var sid=typeof e.source==='object'?e.source.id:(simNodes[e.source]&&simNodes[e.source].id);
-    var tid=typeof e.target==='object'?e.target.id:(simNodes[e.target]&&simNodes[e.target].id);
-    if(sid==null||tid==null) return;
-    if(!adj[sid])adj[sid]=[];
-    if(!adj[tid])adj[tid]=[];
-    adj[sid].push(tid); adj[tid].push(sid);
-  });
-  var prev={},visited={},queue=[targetId];
-  visited[targetId]=true;
-  while(queue.length){
-    var cur=queue.shift();
-    if(cur===root.id){
-      var path=[],node=root.id;
-      while(node!==undefined){path.unshift(node);node=prev[node];}
-      return path;
-    }
-    (adj[cur]||[]).forEach(function(nb){
-      if(!visited[nb]){visited[nb]=true;prev[nb]=cur;queue.push(nb);}
-    });
-  }
-  return [];
-}
-
 function showDetail(d){
   var pw=document.getElementById('d-photo-wrap'), pi=document.getElementById('d-photo');
   if(d.photo){ pi.src=d.photo; pw.style.display='block'; } else { pi.src=''; pw.style.display='none'; }
@@ -671,9 +572,6 @@ function showDetail(d){
     else mgrVal='<a href="https://www.wikitree.com/wiki/Special:SearchPerson?p='+d.manager+'" target="_blank">User '+d.manager+'</a>';
   }
   var rows=[
-    ['First name',d.first||'—'],
-    ['Middle name',d.mid||'—'],
-    ['Surname',d.last||'—'],
     ['Gender',d.gender||'—'],
     ['Born',(d.by||'?')+(d.bloc?', '+d.bloc:'')],
     ['Died',d.dy?(d.dy+(d.dloc?', '+d.dloc:'')) : '—'],
@@ -706,48 +604,6 @@ function showDetail(d){
     if(bioFilter){ setTimeout(function(){var m=bioTxt.querySelector('mark');if(m)m.scrollIntoView({block:'nearest'});},50); }
   } else { bioSec.style.display='none'; }
   document.getElementById('detail').style.display='block';
-  var path=findPathToRoot(d.id);
-  window._pathIds=path.length?new Set(path):null;
-  var pathSec=document.getElementById('d-path-section');
-  if(!pathSec){
-    pathSec=document.createElement('div');
-    pathSec.id='d-path-section';
-    pathSec.style.cssText='margin-top:10px;border-top:1px solid var(--border);padding-top:10px';
-    document.getElementById('detail').appendChild(pathSec);
-  }
-  if(path.length>1){
-    var nmap={}; (window._simNodes||[]).forEach(function(n){nmap[n.id]=n;});
-    var steps=path.map(function(id){return nmap[id];}).filter(Boolean);
-    pathSec.innerHTML='<div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Path to root ('+(path.length-1)+' step'+(path.length>2?'s':'')+')</div>'+
-      steps.map(function(n,i){
-        var arr=i<steps.length-1?' <span style="color:var(--text3)">&rarr;</span> ':'';
-        var st=n.deg===0?'color:#ff2200;font-weight:600':'color:var(--text2)';
-        return '<span style="font-size:11px;'+st+';cursor:pointer" onclick="centerNode('+n.id+')">'+n.name+'</span>'+arr;
-      }).join('');
-  } else if(path.length===1){
-    pathSec.innerHTML='<div style="font-size:11px;color:var(--text3)">This is the root node</div>';
-  } else {
-    pathSec.innerHTML='<div style="font-size:11px;color:var(--text3)">No path found at current degree</div>';
-  }
-  // Build set of nodes adjacent to path for softer dimming
-  var adjToPath=new Set();
-  if(window._pathIds){
-    (window._simEdges||[]).forEach(function(e){
-      var sid=typeof e.source==='object'?e.source.id:(window._simNodes&&window._simNodes[e.source]&&window._simNodes[e.source].id);
-      var tid=typeof e.target==='object'?e.target.id:(window._simNodes&&window._simNodes[e.target]&&window._simNodes[e.target].id);
-      if(window._pathIds.has(sid)) adjToPath.add(tid);
-      if(window._pathIds.has(tid)) adjToPath.add(sid);
-    });
-  }
-  svg.selectAll('g.ng').each(function(nd){
-    if(!nd) return;
-    var onPath=window._pathIds&&window._pathIds.has(nd.id);
-    var nearPath=adjToPath.has(nd.id);
-    var closeRel=nd.deg<=2;  // always keep deg 1+2 visible
-    var op=onPath?null:closeRel?0.5:nearPath?0.3:0.1;
-    d3.select(this).selectAll('circle,image,text').attr('opacity',op);
-  });
-  drawEdges();
   if(!is3D){
     var connIds=new Set([d.id]);
     conEdges.forEach(function(e){
@@ -766,9 +622,7 @@ function showDetail(d){
 
 function closeDetail(){
   document.getElementById('detail').style.display='none';
-  var ps=document.getElementById('d-path-section');if(ps)ps.innerHTML='';
   window._dimIds=null;
-  window._pathIds=null;
   svg.selectAll('g.ng circle,g.ng image,g.ng text').attr('opacity',null);
   drawEdges();
 }
@@ -827,27 +681,6 @@ bioInput.oninput=function(){
 };
 clearBio.onclick=function(){bioInput.value='';bioFilter='';bioMatchIds=null;bioCount.innerHTML='';clearBio.style.display='none';var l=document.getElementById('bio-match-list');l.innerHTML='';l.style.display='none';buildGraph();};
 
-document.getElementById('surname-net-select').onchange=function(){
-  surnameNetwork=this.value||null;
-  var cb=document.getElementById('clear-surname-net'),ce=document.getElementById('surname-net-count');
-  if(surnameNetwork){
-    var cnt=RAW.nodes.filter(function(n){return n.last===surnameNetwork;}).length;
-    ce.innerHTML='<span class="match-num">'+cnt+'</span> people — showing their connections';
-    cb.style.display='block';
-    surnameFilter=null;
-    var snEl=document.getElementById('surname-select'); if(snEl) snEl.value='';
-    var snCt=document.getElementById('surname-count'); if(snCt) snCt.innerHTML='';
-    var snCl=document.getElementById('clear-surname'); if(snCl) snCl.style.display='none';
-  } else { ce.innerHTML=''; cb.style.display='none'; }
-  buildGraph();
-};
-document.getElementById('clear-surname-net').onclick=function(){
-  surnameNetwork=null;
-  document.getElementById('surname-net-select').value='';
-  document.getElementById('surname-net-count').innerHTML='';
-  this.style.display='none';
-  buildGraph();
-};
 document.getElementById('mgr-select').onchange=function(){
   mgrFilter=this.value?+this.value:null;
   var cb=document.getElementById('clear-mgr'),ce=document.getElementById('mgr-count');
@@ -884,19 +717,6 @@ document.getElementById('reset-btn').onclick=function(){
   else { svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity.translate(w/2,h/2).scale(1)); }
 };
 document.addEventListener('click',function(e){if(!e.target.closest('#name-search-wrap'))nameRes.style.display='none';});
-document.getElementById('surname-select').onchange=function(){
-  surnameFilter=this.value||null;
-  var cb=document.getElementById('clear-surname'), ce=document.getElementById('surname-count');
-  if(surnameFilter){
-    var cnt=RAW.nodes.filter(function(n){return n.last===surnameFilter;}).length;
-    ce.innerHTML='<span class="match-num">'+cnt+'</span> people'; cb.style.display='block';
-  } else { ce.innerHTML=''; cb.style.display='none'; }
-  buildGraph();
-};
-document.getElementById('clear-surname').onclick=function(){
-  surnameFilter=null; document.getElementById('surname-select').value='';
-  document.getElementById('surname-count').innerHTML=''; this.style.display='none'; buildGraph();
-};
 window.addEventListener('resize',function(){
   w=wrap.clientWidth;h=wrap.clientHeight;
   canvas.width=w;canvas.height=h;svg.attr('width',w).attr('height',h);
@@ -912,8 +732,8 @@ window.addEventListener('resize',function(){
   RAW=RAW_DATA;
   RAW.nodes.forEach(function(n){idMap[n.id]=n;});
   var years=RAW.nodes.map(function(n){return +n.by;}).filter(function(y){return y>1000;});
-  document.getElementById('h-title').textContent='WikiTree Mycelium Tree — '+RAW.meta.root_id;
-  document.getElementById('h-subtitle').textContent='Mycelium Tree · '+RAW.meta.node_count.toLocaleString()+' people · '+RAW.meta.max_degree+' degrees';
+  document.getElementById('h-title').textContent='WikiTree — '+RAW.meta.root_id;
+  document.getElementById('h-subtitle').textContent='Force-directed graph · '+RAW.meta.node_count.toLocaleString()+' people · '+RAW.meta.max_degree+' degrees';
   document.getElementById('h-years').textContent=Math.min.apply(null,years)+'–'+Math.max.apply(null,years);
   var maxDeg=RAW.meta.max_degree||15;
   document.getElementById('deg-slider').max=maxDeg;
@@ -925,21 +745,6 @@ window.addEventListener('resize',function(){
   var mgrList=Object.keys(mgrCounts).map(function(id){return {id:+id,count:mgrCounts[id],label:mgrNames[id]||'User '+id};}).sort(function(a,b){return b.count-a.count;});
   var sel=document.getElementById('mgr-select');
   mgrList.forEach(function(m){var opt=document.createElement('option');opt.value=m.id;opt.textContent=m.label+' ('+m.count+')';sel.appendChild(opt);});
-  // Top 30 surnames by frequency
-  var snCounts={};
-  RAW.nodes.forEach(function(n){ if(n.last) snCounts[n.last]=(snCounts[n.last]||0)+1; });
-  var allSN=Object.entries(snCounts).sort(function(a,b){return b[1]-a[1];});
-  var top30=allSN.slice(0,30);
-  var snSel=document.getElementById('surname-select');
-  top30.forEach(function(pair){
-    var opt=document.createElement('option');
-    opt.value=pair[0]; opt.textContent=pair[0]+' ('+pair[1]+')'; snSel.appendChild(opt);
-  });
-  var snNetSel=document.getElementById('surname-net-select');
-  allSN.slice(0,20).forEach(function(pair){
-    var opt=document.createElement('option');
-    opt.value=pair[0]; opt.textContent=pair[0]+' ('+pair[1]+')'; snNetSel.appendChild(opt);
-  });
   buildGraph();
 })();
 </script>
