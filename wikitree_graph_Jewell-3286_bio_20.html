@@ -366,7 +366,7 @@ function buildGraph(){
       .attr('stroke',function(){if(surnameNetwork&&d._snP) return '#ffffff'; return isRoot?'#fff':'rgba(255,255,255,0.12)';}())
       .attr('stroke-width',function(){if(surnameNetwork&&d._snP) return 3; return isRoot?2.5:0.8;}())
       .attr('fill-opacity',nodeOpacity(d))
-      .attr('filter',function(){if(surnameNetwork&&d._snP) return 'url(#bio-glow)'; return (hasVis&&vbm.has(d.id))?'url(#bio-glow)':(isRoot?'url(#root-glow)':null));
+      .attr('filter',function(){if(surnameNetwork&&d._snP) return 'url(#bio-glow)'; return (hasVis&&vbm.has(d.id))?'url(#bio-glow)':(isRoot?'url(#root-glow)':null);}());
     if(isRoot&&d.photo){
       grp.append('image').attr('href',d.photo).attr('x',-(ROOT_R-2)).attr('y',-(ROOT_R-2))
         .attr('width',(ROOT_R-2)*2).attr('height',(ROOT_R-2)*2)
