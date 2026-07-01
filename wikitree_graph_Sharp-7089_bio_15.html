@@ -366,7 +366,7 @@ function buildGraph(){
   var nodeG=g.selectAll('g.ng').data(simNodes,function(d){return d.id;}).enter().append('g').attr('class','ng').style('cursor','pointer');
 
   nodeG.each(function(d){
-    var grp=d3.select(this), r=nodeRadius(d), isRoot=d.deg===0;
+    var grp=d3.select(this), r=surnameNetwork&&d._snP?nodeRadius(d)*2:nodeRadius(d), isRoot=d.deg===0;
     var vbm=window._visibleBioMatchIds, hasVis=vbm&&vbm.size>0;
     if(isRoot){
       grp.append('circle').attr('class','root-ring').attr('r',ROOT_R+5).attr('fill','none')
@@ -376,10 +376,10 @@ function buildGraph(){
     }
     grp.append('circle').attr('class','node-bg').attr('r',r)
       .attr('fill',(hasVis&&vbm.has(d.id))?'#ffee00':degColor(d.deg))
-      .attr('stroke',function(){if(surnameNetwork&&d._snP) return 'rgba(255,255,255,0.9)'; return isRoot?'#fff':'rgba(255,255,255,0.12)';}())
-      .attr('stroke-width',function(){if(surnameNetwork&&d._snP) return 2; return isRoot?2.5:0.8;}())
+      .attr('stroke',function(){if(surnameNetwork&&d._snP) return '#ffffff'; return isRoot?'#fff':'rgba(255,255,255,0.12)';}())
+      .attr('stroke-width',function(){if(surnameNetwork&&d._snP) return 3; return isRoot?2.5:0.8;}())
       .attr('fill-opacity',nodeOpacity(d))
-      .attr('filter',(hasVis&&vbm.has(d.id))?'url(#bio-glow)':(isRoot?'url(#root-glow)':null));
+      .attr('filter',function(){if(surnameNetwork&&d._snP) return 'url(#bio-glow)'; return (hasVis&&vbm.has(d.id))?'url(#bio-glow)':(isRoot?'url(#root-glow)':null));
     if(isRoot&&d.photo){
       grp.append('image').attr('href',d.photo).attr('x',-(ROOT_R-2)).attr('y',-(ROOT_R-2))
         .attr('width',(ROOT_R-2)*2).attr('height',(ROOT_R-2)*2)
