@@ -664,7 +664,7 @@ function closeDetail(){
   drawEdges();
 }
 document.getElementById('detail-close').onclick=closeDetail;
-svg.on('click',closeDetail);
+if (svg) svg.on('click',closeDetail);
 document.getElementById('graph-3d').addEventListener('click',function(e){
   if(e.target===this) closeDetail();
 });
