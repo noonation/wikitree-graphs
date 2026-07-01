@@ -200,8 +200,8 @@ a{color:var(--edge-pc)}
   <div class="t-loc" id="t-loc"></div>
 </div>
 
+
 <script>
-window.onload = function(){
 const DEG_COLORS = ['#ff2200','#ff6600','#ff9900','#ffcc00','#ffee00','#ccee00','#88dd00','#44cc22','#22aa44','#009966','#00886e','#006655','#004433','#003322','#002211','#001108'];
 const EDGE_COLORS = {'parent-child':'#00b4f0','sibling':'#e0259a','spouse':'#f5c400'};
 const ROOT_R = 30;
@@ -781,8 +781,8 @@ window.addEventListener('resize',function(){
 });
 
 // ── Boot ─────────────────────────────────────────────────────
-window.onload=function(){
-  wrap   = document.getElementById('canvas-wrap');
+// DOM ready (script at end of body)
+wrap   = document.getElementById('canvas-wrap');
   canvas = document.getElementById('edge-canvas');
   ctx    = canvas.getContext('2d');
   svgEl  = document.getElementById('node-svg');
@@ -825,8 +825,6 @@ window.onload=function(){
   });
   buildGraph();
 })();
-}; // end boot
-}; // end window.onload
 </script>
 </body>
 </html>
