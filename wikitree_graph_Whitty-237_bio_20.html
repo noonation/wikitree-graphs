@@ -122,6 +122,13 @@ a{color:var(--edge-pc)}
     -->
 
     <div class="ctrl-section">
+      <h3>Generations removed from starting profile</h3>
+      <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">5</span></div>
+      <input type="range" id="deg-slider" min="0" max="11" value="5" step="1">
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Max in dataset: 11</div>
+    </div>
+
+    <div class="ctrl-section">
       <h3>Find by name</h3>
       <div class="search-wrap" id="name-search-wrap">
         <input class="search-input" id="name-search" type="text" placeholder="Search names&hellip;" autocomplete="off">
@@ -149,13 +156,6 @@ a{color:var(--edge-pc)}
       <div id="surname-net-count"></div>
       <button id="clear-surname-net">Show full network</button>
     </div>
-    <div class="ctrl-section">
-      <h3>Generations removed from starting profile</h3>
-      <div class="ctrl-row"><span class="ctrl-label">Show up to</span><span class="ctrl-value" id="deg-val">5</span></div>
-      <input type="range" id="deg-slider" min="0" max="11" value="5" step="1">
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">Max in dataset: 11</div>
-    </div>
-
     <div class="ctrl-section">
       <h3>Node colour &mdash; degree</h3>
       <div id="deg-legend"></div>
