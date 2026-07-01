@@ -243,7 +243,7 @@ function nodeRadius(n){
 function degColor(deg){ return DEG_COLORS[Math.min(deg, DEG_COLORS.length-1)]; }
 
 function nodeOpacity(d){
-  if(surnameNetwork){return d._snP?1:0.25;}
+  if(surnameNetwork){return d._snP?1:d._snS?0.55:0.15;}
   if(mgrFilter && d.manager !== mgrFilter) return 0.28;
   var vbm=window._visibleBioMatchIds, hasVis=vbm&&vbm.size>0;
   if(!hasVis) return 1;
@@ -310,7 +310,10 @@ function buildGraph(){
       return snAllIds.has(e.s)&&snAllIds.has(e.t)&&
         (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
     });
-    visNodes.forEach(function(n){n._snP=snPrimIds.has(n.id);});
+    visNodes.forEach(function(n){
+      n._snP=snPrimIds.has(n.id);
+      n._snS=snSecIds.has(n.id);
+    });
   } else {
     visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
     var visIds=new Set(visNodes.map(function(n){return n.id;}));
@@ -318,7 +321,7 @@ function buildGraph(){
       return visIds.has(e.s)&&visIds.has(e.t)&&
         (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
     });
-    visNodes.forEach(function(n){n._snP=false;});
+    visNodes.forEach(function(n){n._snP=false;n._snS=false;});
   }
   var simNodes=visNodes.map(function(n){return Object.assign({},n);});
   var nodeIdx={};
@@ -441,7 +444,10 @@ function build3D(){
       return snAllIds.has(e.s)&&snAllIds.has(e.t)&&
         (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
     });
-    visNodes.forEach(function(n){n._snP=snPrimIds.has(n.id);});
+    visNodes.forEach(function(n){
+      n._snP=snPrimIds.has(n.id);
+      n._snS=snSecIds.has(n.id);
+    });
   } else {
     visNodes=RAW.nodes.filter(function(n){return n.deg<=showDeg;});
     var visIds=new Set(visNodes.map(function(n){return n.id;}));
@@ -449,7 +455,7 @@ function build3D(){
       return visIds.has(e.s)&&visIds.has(e.t)&&
         (e.type==='parent-child'?showPC:e.type==='sibling'?showSib:showSp);
     });
-    visNodes.forEach(function(n){n._snP=false;});
+    visNodes.forEach(function(n){n._snP=false;n._snS=false;});
   }
 
   // Place nodes on spherical shells by degree
